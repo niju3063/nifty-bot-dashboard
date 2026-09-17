@@ -503,7 +503,7 @@ tickerEl.innerHTML = `
 if (PAPER.is_live && PAPER.log.length === 0) {
   document.getElementById('paperPanelSubtitle').textContent = 'no trades yet';
   document.getElementById('paperPanelDesc').textContent =
-    'run_daily_paper_trade.py hasn\\'t logged any trades yet -- run it at least once, ' +
+    'run_daily_paper_trade.py has not logged any trades yet -- run it at least once, ' +
     'then rebuild this dashboard to see your real forward paper-trading history here.';
 }
 
@@ -670,7 +670,7 @@ regimeStatsEl.innerHTML = `
 `;
 
 // ======================= PAPER TRADING REPLAY =======================
-const PAPER = {"kill_switch_limit":-20000,"run_id":"PAPER","log":[{"day":"2026-09-16","strategy_id":"STRAT-PAPER-000001","strike":23200.0,"side":"SELL_CALL","price":177.5,"status":"OPEN","pnl":null,"cum_pnl":0.0}],"summary":{"total_orders":1,"filled":0,"blocked_by_kill_switch":0,"rejected_rate_limit":0,"realized_pnl":0.0,"kill_switch_tripped":false,"kill_switch_reason":null},"is_live":true,"generated_at":"2026-09-17T12:27:05.912753"};
+const PAPER = {"kill_switch_limit":-20000,"run_id":"PAPER","log":[{"day":"2026-09-16","strategy_id":"STRAT-PAPER-000001","strike":23200.0,"side":"SELL_CALL","price":177.5,"status":"OPEN","pnl":null,"cum_pnl":0.0}],"summary":{"total_orders":1,"filled":0,"blocked_by_kill_switch":0,"rejected_rate_limit":0,"realized_pnl":0.0,"kill_switch_tripped":false,"kill_switch_reason":null},"is_live":true,"generated_at":"2026-09-17T13:08:00.194618"};
 
 const logTbody = document.getElementById('logTbody');
 const logBox = document.getElementById('logBox');
