@@ -1,0 +1,23 @@
+{
+  "kill_switch": {
+    "max_drawdown": -20000,
+    "max_daily_loss": null,
+    "tripped": false,
+    "trip_reason": null,
+    "_peak_equity": 0.0,
+    "_equity": 0.0,
+    "_daily_pnl": 0.0
+  },
+  "open_positions": [
+    {
+      "strategy_id": "STRAT-PAPER-000001",
+      "entry_date": "2026-09-16",
+      "strike": 23200.0,
+      "expiry_date": "2026-09-22",
+      "entry_price": 177.5
+    }
+  ],
+  "trade_log": [],
+  "last_entry_date": "2026-09-16",
+  "run_id": "PAPER"
+}

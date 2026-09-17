@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nifty Edge Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0A0E12;
+  --panel: #10161D;
+  --panel-alt: #141B23;
+  --border: #1E2733;
+  --text: #E8ECF1;
+  --text-dim: #7C8B9C;
+  --text-faint: #4B5666;
+  --teal: #4FD1C5;
+  --amber: #F2A65A;
+  --green: #3DDC84;
+  --red: #FF6B6B;
+  --font-head: 'Space Grotesk', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+:root:not([data-theme="light"]) {
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #F3F5F7;
+    --panel: #FFFFFF;
+    --panel-alt: #F8F9FB;
+    --border: #DDE3EA;
+    --text: #131A22;
+    --text-dim: #5B6B7C;
+    --text-faint: #96A2AF;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #F3F5F7;
+  --panel: #FFFFFF;
+  --panel-alt: #F8F9FB;
+  --border: #DDE3EA;
+  --text: #131A22;
+  --text-dim: #5B6B7C;
+  --text-faint: #96A2AF;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-head);
+  -webkit-font-smoothing: antialiased;
+}
+.wrap {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 28px 24px 60px;
+}
+.masthead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 18px;
+  margin-bottom: 22px;
+}
+.masthead h1 {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.masthead .sub {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin-top: 4px;
+}
+.ticker {
+  display: flex;
+  gap: 22px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+.ticker div { color: var(--text-dim); }
+.ticker span { color: var(--text); font-weight: 500; }
+.ticker .up { color: var(--green); }
+
+.grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+@media (max-width: 900px) {
+  .grid { grid-template-columns: 1fr; }
+}
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 18px 20px;
+  overflow-x: auto;
+}
+.panel h2 {
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0.01em;
+  color: var(--text-dim);
+  margin: 0 0 4px;
+  font-weight: 500;
+}
+.panel h2 b { color: var(--text); font-weight: 600; }
+.panel .desc {
+  font-size: 12.5px;
+  color: var(--text-faint);
+  margin: 0 0 14px;
+  line-height: 1.5;
+  max-width: 62ch;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+th {
+  text-align: right;
+  color: var(--text-faint);
+  font-weight: 500;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+th:first-child, td:first-child { text-align: left; }
+td {
+  text-align: right;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--panel-alt);
+  white-space: nowrap;
+}
+tr.buy td.sig { color: var(--green); }
+tr.sell td.sig { color: var(--red); }
+tr.hold td.sig { color: var(--text-faint); }
+.chart-box { position: relative; height: 230px; }
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 14px;
+}
+.stat {
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 10px 12px;
+}
+.stat .label { font-size: 11px; color: var(--text-faint); margin-bottom: 4px; }
+.stat .value { font-family: var(--font-mono); font-size: 16px; font-weight: 600; }
+.stat .value.pos { color: var(--green); }
+.stat .value.neg { color: var(--red); }
+.legend-row {
+  display: flex;
+  gap: 18px;
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 10px;
+  font-family: var(--font-mono);
+}
+.legend-row .dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; }
+
+.pipeline {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0;
+  align-items: stretch;
+  margin-top: 4px;
+}
+.pipe-node {
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 12px 10px;
+  text-align: center;
+  position: relative;
+}
+.pipe-node .file {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--teal);
+  margin-bottom: 6px;
+  word-break: break-word;
+}
+.pipe-node .role { font-size: 11.5px; color: var(--text-dim); line-height: 1.4; }
+.pipe-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-faint);
+  font-size: 16px;
+}
+@media (max-width: 760px) {
+  .pipeline { grid-template-columns: 1fr; }
+  .pipe-arrow { transform: rotate(90deg); padding: 2px 0; }
+}
+
+.footnote {
+  font-size: 12px;
+  color: var(--text-faint);
+  margin-top: 26px;
+  line-height: 1.6;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+.footnote code { font-family: var(--font-mono); color: var(--text-dim); }
+
+.risk-panel-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 18px;
+}
+@media (max-width: 900px) { .risk-panel-grid { grid-template-columns: 1fr; } }
+.ks-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--panel-alt);
+}
+.ks-badge .light {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+}
+.ks-badge.tripped { border-color: var(--red); color: var(--red); }
+.ks-badge.tripped .light { background: var(--red); box-shadow: 0 0 8px var(--red); animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+.controls { display: flex; gap: 8px; align-items: center; margin: 12px 0 14px; flex-wrap: wrap; }
+.controls button {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 7px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.controls button:hover { border-color: var(--teal); color: var(--teal); }
+.controls button:disabled { opacity: 0.4; cursor: default; }
+.controls .progress {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-faint);
+  margin-left: auto;
+}
+.log-box {
+  height: 300px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+}
+.log-box table { font-size: 11.5px; }
+.log-box thead th {
+  position: sticky; top: 0;
+  background: var(--panel);
+  z-index: 1;
+}
+tr.st-filled td.status { color: var(--text-dim); }
+tr.st-killed td.status { color: var(--red); }
+tr.st-ratelimit td.status { color: var(--amber); }
+tr.st-open td.status { color: var(--teal); font-weight: 600; }
+td.pnl-pos { color: var(--green); }
+td.pnl-neg { color: var(--red); }
+.mini-note {
+  font-size: 12px;
+  color: var(--text-faint);
+  margin-top: 10px;
+  line-height: 1.6;
+}
+.rate-demo-table { margin-top: 8px; }
+.rate-demo-table td, .rate-demo-table th { padding: 4px 8px; }
+
+.context-disclaimer {
+  font-size: 12px;
+  color: var(--text-faint);
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 10px 14px;
+  margin-top: 10px;
+  line-height: 1.6;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    <div>
+      <h1>NIFTY EDGE TERMINAL</h1>
+      <div class="sub">Probability model &middot; backtest &middot; calibration &middot; adaptive layer &mdash; one pipeline, offline validation build</div>
+    </div>
+    <div class="ticker" id="ticker"></div>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>LIVE CHAIN &middot; <b>NIFTY weekly, price-mode edge</b></h2>
+      <p class="desc">Model's own Black-Scholes price vs the synthetic market premium, per strike. This is the corrected comparison from the backtest &mdash; price vs price, not probability vs probability.</p>
+      <table id="signalsTable">
+        <thead>
+          <tr><th>Strike</th><th>Mkt Price</th><th>Model Price</th><th>Mkt P(&gt;K)</th><th>Model P(&gt;K)</th><th>Edge</th><th>Signal</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>PIPELINE &middot; <b>what's stitched together here</b></h2>
+      <p class="desc">Each block is a delivered module. Data flows left to right; the adaptive layer feeds back into the model on every resolved expiry.</p>
+      <div class="pipeline" id="pipeline"></div>
+    </div>
+  </div>
+
+  
+  <div class="grid">
+    <div class="panel">
+      <h2>GAMMA WALL &middot; <b>real Black-Scholes Greeks by strike</b></h2>
+      <p class="desc">Delta and gamma computed from the model's own vol forecast -- genuinely well-defined here, since these are real vanilla options (unlike the original bot's binary yes/no markets, which don't have real Greeks at all). Gamma exposure = illustrative open interest &times; gamma; real per-strike OI needs a live fetch (see the Market Context panel's PCR source for how).</p>
+      <div class="chart-box"><canvas id="gammaWallChart"></canvas></div>
+      <div class="legend-row">
+        <span><i class="dot" style="background:var(--teal)"></i>gamma exposure</span>
+        <span style="color:var(--text-faint);">strikes on the x-axis, spot at center</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>EXPIRY DECAY RING &middot; <b>mispricing magnitude vs. days-to-expiry</b></h2>
+      <p class="desc">The SAME synthetic vol-misestimation, priced at several days-to-expiry values. Answers a real question -- does mispricing from a fixed vol error look bigger as expiry approaches -- rather than being decorative. (Reinterpreted from the original 'Expiry Torus'; the ring stays, the data underneath is now a genuine measurement.)</p>
+      <div class="chart-box"><canvas id="expiryRingChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-bottom:18px;">
+    <h2>SIGNAL CASCADE &middot; <b>BUY vs SELL clustering across the backtest</b></h2>
+    <p class="desc">Real BUY_CALL / SELL_CALL counts from the actual backtest trade stream, in rolling windows. Named after the original 'Hawkes Cascade' panel, which modeled self-exciting order-FILL clustering -- a real technique, but one needing tick-level fill data. This strategy places roughly one trade per weekly expiry, not thousands of fills per hour, so there's no tick stream to fit a Hawkes process to. This shows real signal-type clustering instead -- a simpler, honest stand-in.</p>
+    <div class="chart-box" style="height:180px;"><canvas id="cascadeChart"></canvas></div>
+    <div class="legend-row">
+      <span><i class="dot" style="background:var(--green)"></i>BUY_CALL</span>
+      <span><i class="dot" style="background:var(--red)"></i>SELL_CALL</span>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>BACKTEST &middot; <b>probability-edge vs price-edge</b></h2>
+      <p class="desc">Same 200 synthetic expiries, same mispricing, two signal modes. Comparing P(S&gt;K) is well-calibrated but doesn't price a convex payoff correctly &mdash; comparing model price to market price does.</p>
+      <div class="chart-box"><canvas id="equityChart"></canvas></div>
+      <div class="legend-row">
+        <span><i class="dot" style="background:var(--red)"></i>prob-mode edge</span>
+        <span><i class="dot" style="background:var(--teal)"></i>price-mode edge</span>
+      </div>
+      <div class="stat-row" id="backtestStats"></div>
+    </div>
+
+    <div class="panel">
+      <h2>CALIBRATION &middot; <b>price-mode model</b></h2>
+      <p class="desc">Each point buckets trades by model probability and plots the actual realized frequency. Points on the diagonal mean the model isn't over- or under-confident.</p>
+      <div class="chart-box"><canvas id="calibChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: 1fr;">
+    <div class="panel">
+      <h2>REGIME SHIFT &middot; <b>static model vs adaptive refit</b></h2>
+      <p class="desc">True daily volatility doubles at the marked line (a stress period). The static model's vol forecast never updates and keeps underpricing risk; the adaptive model refits HAR-RV on a trailing window every 20 expiries and recovers.</p>
+      <div class="chart-box" style="height:280px;"><canvas id="regimeChart"></canvas></div>
+      <div class="legend-row">
+        <span><i class="dot" style="background:var(--red)"></i>static (fit once)</span>
+        <span><i class="dot" style="background:var(--green)"></i>adaptive (rolling refit)</span>
+      </div>
+      <div class="stat-row" id="regimeStats"></div>
+    </div>
+  </div>
+
+  
+  <div class="panel" style="margin-bottom:18px;">
+    <h2>PAPER TRADING &amp; RISK CONTROL &middot; <b id="paperPanelSubtitle">live forward record</b></h2>
+    <p class="desc" id="paperPanelDesc">Your actual forward paper-trading history from run_daily_paper_trade.py -- real decisions made without knowing the outcome in advance, tagged with Strategy IDs and enforced by a real kill switch. Press Play to replay it order-by-order, or just read the table directly.</p>
+
+    <div class="risk-panel-grid">
+      <div>
+        <div class="controls">
+          <span class="ks-badge" id="ksBadge"><span class="light"></span><span id="ksLabel">ARMED</span></span>
+        </div>
+        <div class="controls">
+          <button id="playBtn">&#9654; Play</button>
+          <button id="pauseBtn" disabled>&#10073;&#10073; Pause</button>
+          <button id="resetBtn">&#8634; Reset</button>
+          <button id="skipBtn">&#9197; Skip to trip</button>
+          <span class="progress" id="progressLabel">0 / 0 orders</span>
+        </div>
+        <div class="chart-box" style="height:200px;">
+          <canvas id="paperPnlChart"></canvas>
+        </div>
+        <p class="mini-note" id="ksReasonNote"></p>
+
+        <p class="mini-note"><b style="color:var(--text-dim)">Rate limiter</b> (separate demo, 15 orders submitted in one second, cap = 10/sec):</p>
+        <table class="rate-demo-table">
+          <thead><tr><th>Order</th><th>1&ndash;10</th><th>11&ndash;15</th></tr></thead>
+          <tbody><tr><td>Status</td><td style="color:var(--text-dim)">FILLED</td><td style="color:var(--amber)">REJECTED_RATE_LIMIT</td></tr></tbody>
+        </table>
+      </div>
+
+      <div>
+        <div class="log-box" id="logBox">
+          <table>
+            <thead>
+              <tr><th>Day</th><th>Strategy ID</th><th>Strike</th><th>Side</th><th>Price</th><th>P&amp;L</th><th>Status</th></tr>
+            </thead>
+            <tbody id="logTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="grid">
+    <div class="panel">
+      <h2>MARKET CONTEXT &middot; <b>India VIX vs model's realized-vol forecast</b></h2>
+      <p class="desc">India VIX is the market's own options-implied volatility gauge. The model's HAR-RV forecast estimates realized volatility from price history. The gap between them is the variance risk premium -- the thing the sell-ATM baseline was actually harvesting, not a mispricing the model found.</p>
+      <div class="chart-box"><canvas id="vixChart"></canvas></div>
+      <div class="legend-row">
+        <span><i class="dot" style="background:var(--amber)"></i>India VIX (implied)</span>
+        <span><i class="dot" style="background:var(--teal)"></i>model's realized-vol forecast</span>
+      </div>
+      <div class="stat-row" id="vixStats"></div>
+    </div>
+
+    <div class="panel">
+      <h2>PUT-CALL RATIO &middot; <b>open-interest based</b></h2>
+      <p class="desc">Total put OI / total call OI for the nearest expiry, computed from the same bhavcopy file already used for pricing. A commonly-cited positioning gauge -- elevated PCR is conventionally read as more hedging/bearish positioning -- but this is context, not a signal this pipeline has validated.</p>
+      <div class="chart-box"><canvas id="pcrChart"></canvas></div>
+      <div class="stat-row" id="pcrStats"></div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-bottom:18px;">
+    <div class="context-disclaimer">
+      <b style="color:var(--text-dim)">What this panel is, and isn't:</b> VIX, PCR, and Max Pain are real, NSE-published figures, not synthetic -- but they are market-conditions context, not trading signals this pipeline has backtested or validated. Nothing on this page has demonstrated a real, tradeable edge (see the backtest and paper-trading panels above). Deliberately excluded: FII/DII flows, global cues (Dow, crude, SGX/GIFT Nifty), news sentiment, and anything positioned as a "market projection" -- these either require data sources beyond this free NSE pipeline, or risk exactly the false-confidence trap this project spent many rounds debugging out of. More charts do not create more edge.
+    </div>
+  </div>
+
+  <div class="footnote">
+    All figures on this page come from synthetic data generated by <code>probability_model.py</code>, <code>backtest.py</code>, and <code>adaptive_model.py</code> &mdash; this validates the pipeline's logic and wiring, not a real-market edge. Swap in <code>fetch_nse_historical.py</code> output before drawing conclusions about actual Nifty markets.
+  </div>
+
+</div>
+
+<script>
+const DATA = __DATA_JSON__
+;
+
+// ---------- theme-aware chart colors ----------
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+const gridColor = () => cssVar('--border');
+const textColor = () => cssVar('--text-dim');
+Chart.defaults.font.family = "'IBM Plex Mono', monospace";
+Chart.defaults.font.size = 11;
+Chart.defaults.color = textColor();
+
+// ---------- ticker ----------
+const tickerEl = document.getElementById('ticker');
+const priceSummary = DATA.backtest.price_mode.summary;
+const liveUpdatedNote = (PAPER.is_live && PAPER.generated_at)
+  ? `<div>LIVE DATA AS OF <span class="up">${new Date(PAPER.generated_at).toLocaleString()}</span></div>`
+  : '';
+tickerEl.innerHTML = `
+  ${liveUpdatedNote}
+  <div>SPOT <span>${DATA.spot.toFixed(0)}</span></div>
+  <div>ANN VOL <span>${DATA.annualized_vol_pct.toFixed(1)}%</span></div>
+  <div>PRICE-MODE WIN RATE <span class="up">${(priceSummary.win_rate*100).toFixed(1)}%</span></div>
+  <div>SHARPE <span>${priceSummary.sharpe_annualized.toFixed(2)}</span></div>
+`;
+
+// If there's no live paper-trading data yet, say so plainly rather than
+// silently showing an empty table with no explanation.
+if (PAPER.is_live && PAPER.log.length === 0) {
+  document.getElementById('paperPanelSubtitle').textContent = 'no trades yet';
+  document.getElementById('paperPanelDesc').textContent =
+    'run_daily_paper_trade.py hasn\\'t logged any trades yet -- run it at least once, ' +
+    'then rebuild this dashboard to see your real forward paper-trading history here.';
+}
+
+// ---------- signals table ----------
+const tbody = document.querySelector('#signalsTable tbody');
+DATA.signals.forEach(s => {
+  const cls = s.signal === 'BUY_CALL' ? 'buy' : (s.signal === 'SELL_CALL' ? 'sell' : 'hold');
+  const row = document.createElement('tr');
+  row.className = cls;
+  row.innerHTML = `
+    <td>${s.strike.toFixed(0)}</td>
+    <td>${s.market_price.toFixed(2)}</td>
+    <td>${s.model_price.toFixed(2)}</td>
+    <td>${(s.market_prob*100).toFixed(1)}%</td>
+    <td>${(s.model_prob*100).toFixed(1)}%</td>
+    <td>${s.edge_pct > 0 ? '+' : ''}${s.edge_pct.toFixed(1)}%</td>
+    <td class="sig">${s.signal.replace('_',' ')}</td>
+  `;
+  tbody.appendChild(row);
+});
+
+// ---------- pipeline ----------
+const pipelineSteps = [
+  { file: 'fetch_nse_historical.py /<br>broker_data_feed.py', role: 'Historical bhavcopy + live option chain, spot & candle data' },
+  { file: 'probability_model.py', role: 'HAR-RV vol forecast, Breeden-Litzenberger extraction, edge signals' },
+  { file: 'backtest.py', role: 'Walk-forward P&amp;L, win rate, drawdown, calibration' },
+  { file: 'adaptive_model.py', role: 'Rolling refit, isotonic recalibration, adaptive threshold' },
+  { file: '(order execution &mdash;<br>not built yet)', role: 'SEBI Strategy ID, kill switch, broker order placement' },
+];
+const pipelineEl = document.getElementById('pipeline');
+pipelineSteps.forEach((step, i) => {
+  const node = document.createElement('div');
+  node.className = 'pipe-node';
+  node.innerHTML = `<div class="file">${step.file}</div><div class="role">${step.role}</div>`;
+  pipelineEl.appendChild(node);
+  if (i < pipelineSteps.length - 1) {
+    const arrow = document.createElement('div');
+    arrow.className = 'pipe-arrow';
+    arrow.textContent = '\u2192';
+    pipelineEl.appendChild(arrow);
+  }
+});
+
+// ---------- equity curve chart (prob vs price mode) ----------
+new Chart(document.getElementById('equityChart'), {
+  type: 'line',
+  data: {
+    labels: DATA.backtest.price_mode.equity_curve.map((_, i) => i),
+    datasets: [
+      {
+        label: 'prob-mode',
+        data: DATA.backtest.prob_mode.equity_curve,
+        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--red'),
+        backgroundColor: 'transparent',
+        borderWidth: 1.5,
+        pointRadius: 0,
+        tension: 0.15,
+      },
+      {
+        label: 'price-mode',
+        data: DATA.backtest.price_mode.equity_curve,
+        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--teal'),
+        backgroundColor: 'transparent',
+        borderWidth: 1.5,
+        pointRadius: 0,
+        tension: 0.15,
+      },
+    ],
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { display: false },
+      y: { grid: { color: gridColor() }, ticks: { callback: v => v.toLocaleString() } },
+    },
+  },
+});
+
+// ---------- backtest stat cards ----------
+const statsEl = document.getElementById('backtestStats');
+const ps = DATA.backtest.price_mode.summary;
+statsEl.innerHTML = `
+  <div class="stat"><div class="label">WIN RATE</div><div class="value pos">${(ps.win_rate*100).toFixed(1)}%</div></div>
+  <div class="stat"><div class="label">TOTAL P&amp;L</div><div class="value ${ps.total_pnl>=0?'pos':'neg'}">${ps.total_pnl>=0?'+':''}${ps.total_pnl.toFixed(0)}</div></div>
+  <div class="stat"><div class="label">MAX DRAWDOWN</div><div class="value neg">${ps.max_drawdown.toFixed(0)}</div></div>
+  <div class="stat"><div class="label">SHARPE (ANN)</div><div class="value pos">${ps.sharpe_annualized.toFixed(2)}</div></div>
+`;
+
+// ---------- calibration scatter ----------
+new Chart(document.getElementById('calibChart'), {
+  type: 'scatter',
+  data: {
+    datasets: [
+      {
+        label: 'buckets',
+        data: DATA.calibration.map(c => ({ x: c.bucket_mid, y: c.realized_freq, n: c.n })),
+        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--teal'),
+        pointRadius: 5,
+      },
+      {
+        label: 'perfect calibration',
+        data: [{x:0,y:0},{x:1,y:1}],
+        type: 'line',
+        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--text-faint'),
+        borderDash: [4,4],
+        borderWidth: 1,
+        pointRadius: 0,
+      },
+    ],
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { min:0, max:1, title: { display: true, text: 'model P(above strike)' }, grid: { color: gridColor() } },
+      y: { min:0, max:1, title: { display: true, text: 'realized frequency' }, grid: { color: gridColor() } },
+    },
+  },
+});
+
+// ---------- regime shift chart ----------
+const staticCurve = DATA.regime_shift.static_curve;
+const adaptiveCurve = DATA.regime_shift.adaptive_curve;
+new Chart(document.getElementById('regimeChart'), {
+  type: 'line',
+  data: {
+    labels: staticCurve.map(p => p[0]),
+    datasets: [
+      {
+        label: 'static', data: staticCurve.map(p => p[1]),
+        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--red'),
+        backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, tension: 0.1,
+      },
+      {
+        label: 'adaptive', data: adaptiveCurve.map(p => p[1]),
+        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--green'),
+        backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, tension: 0.1,
+      },
+    ],
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      annotation: undefined,
+    },
+    scales: {
+      x: { title: { display: true, text: 'trading day' }, grid: { color: gridColor() } },
+      y: { grid: { color: gridColor() }, ticks: { callback: v => v.toLocaleString() } },
+    },
+  },
+});
+
+// ---------- regime stat cards ----------
+const regimeStatsEl = document.getElementById('regimeStats');
+const staticFinal = staticCurve[staticCurve.length-1][1];
+const adaptiveFinal = adaptiveCurve[adaptiveCurve.length-1][1];
+regimeStatsEl.innerHTML = `
+  <div class="stat"><div class="label">STATIC FINAL P&amp;L</div><div class="value ${staticFinal>=0?'pos':'neg'}">${staticFinal>=0?'+':''}${staticFinal.toFixed(0)}</div></div>
+  <div class="stat"><div class="label">ADAPTIVE FINAL P&amp;L</div><div class="value ${adaptiveFinal>=0?'pos':'neg'}">${adaptiveFinal>=0?'+':''}${adaptiveFinal.toFixed(0)}</div></div>
+  <div class="stat"><div class="label">REGIME SHIFT AT</div><div class="value">day ${DATA.regime_shift.shift_day}</div></div>
+  <div class="stat"><div class="label">TOTAL SIM DAYS</div><div class="value">${DATA.regime_shift.total_days}</div></div>
+`;
+
+// ======================= PAPER TRADING REPLAY =======================
+const PAPER = __PAPER_JSON__;
+
+const logTbody = document.getElementById('logTbody');
+const logBox = document.getElementById('logBox');
+const ksBadge = document.getElementById('ksBadge');
+const ksLabel = document.getElementById('ksLabel');
+const ksReasonNote = document.getElementById('ksReasonNote');
+const progressLabel = document.getElementById('progressLabel');
+const playBtn = document.getElementById('playBtn');
+const pauseBtn = document.getElementById('pauseBtn');
+const resetBtn = document.getElementById('resetBtn');
+const skipBtn = document.getElementById('skipBtn');
+
+let replayIdx = 0;
+let replayTimer = null;
+
+const pnlChart = new Chart(document.getElementById('paperPnlChart'), {
+  type: 'line',
+  data: {
+    labels: [],
+    datasets: [
+      {
+        label: 'cumulative P&L',
+        data: [],
+        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--teal'),
+        backgroundColor: 'transparent',
+        borderWidth: 1.5,
+        pointRadius: 0,
+        tension: 0.1,
+      },
+      {
+        label: 'kill switch limit',
+        data: [],
+        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--red'),
+        borderDash: [4,4],
+        borderWidth: 1,
+        pointRadius: 0,
+      },
+    ],
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    animation: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { display: false },
+      y: { grid: { color: gridColor() }, ticks: { callback: v => v.toLocaleString() } },
+    },
+  },
+});
+
+function statusClass(status) {
+  if (status === 'FILLED') return 'st-filled';
+  if (status === 'OPEN') return 'st-open';
+  if (status === 'BLOCKED_KILL_SWITCH') return 'st-killed';
+  if (status === 'REJECTED_RATE_LIMIT') return 'st-ratelimit';
+  return '';
+}
+
+function appendRow(row) {
+  const tr = document.createElement('tr');
+  tr.className = statusClass(row.status);
+  const pnlCls = row.pnl == null ? '' : (row.pnl >= 0 ? 'pnl-pos' : 'pnl-neg');
+  const pnlText = row.pnl == null ? '&mdash;' : (row.pnl >= 0 ? '+' : '') + row.pnl.toFixed(1);
+  tr.innerHTML = `
+    <td>${row.day}</td>
+    <td>${row.strategy_id}</td>
+    <td>${row.strike.toFixed(0)}</td>
+    <td>${row.side.replace('_',' ')}</td>
+    <td>${row.price.toFixed(2)}</td>
+    <td class="${pnlCls}">${pnlText}</td>
+    <td class="status">${row.status.replace(/_/g,' ')}</td>
+  `;
+  logTbody.appendChild(tr);
+  logBox.scrollTop = logBox.scrollHeight;
+
+  pnlChart.data.labels.push(row.day);
+  pnlChart.data.datasets[0].data.push(row.cum_pnl);
+  pnlChart.data.datasets[1].data.push(PAPER.kill_switch_limit);
+  pnlChart.update('none');
+}
+
+function setTripped(tripped) {
+  if (tripped) {
+    ksBadge.classList.add('tripped');
+    ksLabel.textContent = 'TRIPPED';
+    ksReasonNote.innerHTML = `<b style="color:var(--red)">Kill switch tripped:</b> ${PAPER.summary.kill_switch_reason}. No further orders placed for the rest of the session.`;
+  } else {
+    ksBadge.classList.remove('tripped');
+    ksLabel.textContent = 'ARMED';
+    ksReasonNote.textContent = '';
+  }
+}
+
+function stepReplay() {
+  if (replayIdx >= PAPER.log.length) {
+    stopReplay();
+    if (PAPER.summary.kill_switch_tripped) setTripped(true);
+    return;
+  }
+  appendRow(PAPER.log[replayIdx]);
+  replayIdx++;
+  progressLabel.textContent = `${replayIdx} / ${PAPER.log.length} orders`;
+}
+
+function startReplay() {
+  if (replayTimer) return;
+  playBtn.disabled = true;
+  pauseBtn.disabled = false;
+  replayTimer = setInterval(stepReplay, 35);
+}
+
+function stopReplay() {
+  clearInterval(replayTimer);
+  replayTimer = null;
+  playBtn.disabled = false;
+  pauseBtn.disabled = true;
+}
+
+function resetReplay() {
+  stopReplay();
+  replayIdx = 0;
+  logTbody.innerHTML = '';
+  pnlChart.data.labels = [];
+  pnlChart.data.datasets[0].data = [];
+  pnlChart.data.datasets[1].data = [];
+  pnlChart.update('none');
+  progressLabel.textContent = `0 / ${PAPER.log.length} orders`;
+  setTripped(false);
+}
+
+function skipToEnd() {
+  stopReplay();
+  while (replayIdx < PAPER.log.length) stepReplay();
+}
+
+playBtn.addEventListener('click', startReplay);
+pauseBtn.addEventListener('click', stopReplay);
+resetBtn.addEventListener('click', resetReplay);
+skipBtn.addEventListener('click', skipToEnd);
+
+resetReplay();
+
+
+// ======================= MARKET CONTEXT =======================
+const CONTEXT = __CONTEXT_JSON__;
+
+if (CONTEXT.vix_vs_realized && CONTEXT.vix_vs_realized.length) {
+  new Chart(document.getElementById('vixChart'), {
+    type: 'line',
+    data: {
+      labels: CONTEXT.vix_vs_realized.map(r => r.date),
+      datasets: [
+        {
+          label: 'India VIX', data: CONTEXT.vix_vs_realized.map(r => r.vix),
+          borderColor: getComputedStyle(document.documentElement).getPropertyValue('--amber'),
+          backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, tension: 0.15,
+        },
+        {
+          label: 'realized-vol forecast', data: CONTEXT.vix_vs_realized.map(r => r.realized_vol_forecast),
+          borderColor: getComputedStyle(document.documentElement).getPropertyValue('--teal'),
+          backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, tension: 0.15,
+        },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { display: false },
+        y: { title: { display: true, text: 'annualized vol %' }, grid: { color: gridColor() } },
+      },
+    },
+  });
+
+  const vixStatsEl = document.getElementById('vixStats');
+  const gap = CONTEXT.avg_vix_minus_realized_vol;
+  vixStatsEl.innerHTML = `
+    <div class="stat"><div class="label">LATEST VIX</div><div class="value">${CONTEXT.latest_vix ?? '--'}</div></div>
+    <div class="stat"><div class="label">AVG VIX &minus; REALIZED</div><div class="value ${gap>=0?'pos':'neg'}">${gap!=null ? (gap>=0?'+':'')+gap : '--'}</div></div>
+    <div class="stat"><div class="label">DATA POINTS</div><div class="value">${CONTEXT.vix_vs_realized.length}</div></div>
+    <div class="stat"><div class="label">SOURCE</div><div class="value" style="font-size:12px;">NSE daily</div></div>
+  `;
+}
+
+if (CONTEXT.pcr_series && CONTEXT.pcr_series.length) {
+  new Chart(document.getElementById('pcrChart'), {
+    type: 'line',
+    data: {
+      labels: CONTEXT.pcr_series.map(r => r.date),
+      datasets: [
+        {
+          label: 'PCR', data: CONTEXT.pcr_series.map(r => r.pcr),
+          borderColor: getComputedStyle(document.documentElement).getPropertyValue('--teal'),
+          backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, tension: 0.15,
+        },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { display: false },
+        y: { title: { display: true, text: 'put OI / call OI' }, grid: { color: gridColor() } },
+      },
+    },
+  });
+
+  const pcrStatsEl = document.getElementById('pcrStats');
+  const latestMaxPain = CONTEXT.max_pain_vs_spot && CONTEXT.max_pain_vs_spot.length
+    ? CONTEXT.max_pain_vs_spot[CONTEXT.max_pain_vs_spot.length - 1] : null;
+  pcrStatsEl.innerHTML = `
+    <div class="stat"><div class="label">LATEST PCR</div><div class="value">${CONTEXT.latest_pcr ?? '--'}</div></div>
+    <div class="stat"><div class="label">LATEST MAX PAIN</div><div class="value">${latestMaxPain?.max_pain?.toFixed(0) ?? '--'}</div></div>
+    <div class="stat"><div class="label">LATEST SPOT</div><div class="value">${latestMaxPain?.spot?.toFixed(0) ?? '--'}</div></div>
+    <div class="stat"><div class="label">DATA POINTS</div><div class="value">${CONTEXT.pcr_series.length}</div></div>
+  `;
+}
+
+
+// ======================= GAMMA WALL =======================
+if (DATA.gamma_wall && DATA.gamma_wall.length) {
+  new Chart(document.getElementById('gammaWallChart'), {
+    type: 'bar',
+    data: {
+      labels: DATA.gamma_wall.map(g => g.strike.toFixed(0)),
+      datasets: [{
+        label: 'gamma exposure',
+        data: DATA.gamma_wall.map(g => g.gamma_exposure),
+        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--teal'),
+        borderRadius: 3,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false } },
+        y: { grid: { color: gridColor() }, title: { display: true, text: 'OI \u00d7 gamma (illustrative OI)' } },
+      },
+    },
+  });
+}
+
+// ======================= EXPIRY DECAY RING =======================
+if (DATA.expiry_decay && DATA.expiry_decay.length) {
+  new Chart(document.getElementById('expiryRingChart'), {
+    type: 'polarArea',
+    data: {
+      labels: DATA.expiry_decay.map(d => `${d.days_to_expiry}d to expiry`),
+      datasets: [{
+        data: DATA.expiry_decay.map(d => d.avg_abs_edge_pct),
+        backgroundColor: [
+          'rgba(79,209,197,0.75)', 'rgba(79,209,197,0.6)', 'rgba(242,166,90,0.6)',
+          'rgba(255,107,107,0.6)', 'rgba(255,107,107,0.8)',
+        ],
+        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--border'),
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } } },
+      scales: { r: { grid: { color: gridColor() }, ticks: { display: false } } },
+    },
+  });
+}
+
+// ======================= SIGNAL CASCADE =======================
+if (DATA.signal_cascade && DATA.signal_cascade.length) {
+  new Chart(document.getElementById('cascadeChart'), {
+    type: 'bar',
+    data: {
+      labels: DATA.signal_cascade.map(c => c.seq),
+      datasets: [
+        {
+          label: 'BUY_CALL', data: DATA.signal_cascade.map(c => c.buy),
+          backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--green'),
+          stack: 's',
+        },
+        {
+          label: 'SELL_CALL', data: DATA.signal_cascade.map(c => -c.sell),
+          backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--red'),
+          stack: 's',
+        },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { display: false, stacked: true },
+        y: { stacked: true, grid: { color: gridColor() }, ticks: { callback: v => Math.abs(v) } },
+      },
+    },
+  });
+}
+
+</script>
+</body>
+</html>
