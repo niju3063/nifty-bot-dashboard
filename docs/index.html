@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nifty Edge Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0A0E12;
+  --panel: #10161D;
+  --panel-alt: #141B23;
+  --border: #1E2733;
+  --text: #E8ECF1;
+  --text-dim: #7C8B9C;
+  --text-faint: #4B5666;
+  --teal: #4FD1C5;
+  --amber: #F2A65A;
+  --green: #3DDC84;
+  --red: #FF6B6B;
+  --font-head: 'Space Grotesk', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+:root:not([data-theme="light"]) {
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #F3F5F7;
+    --panel: #FFFFFF;
+    --panel-alt: #F8F9FB;
+    --border: #DDE3EA;
+    --text: #131A22;
+    --text-dim: #5B6B7C;
+    --text-faint: #96A2AF;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #F3F5F7;
+  --panel: #FFFFFF;
+  --panel-alt: #F8F9FB;
+  --border: #DDE3EA;
+  --text: #131A22;
+  --text-dim: #5B6B7C;
+  --text-faint: #96A2AF;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-head);
+  -webkit-font-smoothing: antialiased;
+}
+.wrap {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 28px 24px 60px;
+}
+.masthead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 18px;
+  margin-bottom: 22px;
+}
+.masthead h1 {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.masthead .sub {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin-top: 4px;
+}
+.ticker {
+  display: flex;
+  gap: 22px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+.ticker div { color: var(--text-dim); }
+.ticker span { color: var(--text); font-weight: 500; }
+.ticker .up { color: var(--green); }
+
+.grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+@media (max-width: 900px) {
+  .grid { grid-template-columns: 1fr; }
+}
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 18px 20px;
+  overflow-x: auto;
+}
+.panel h2 {
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0.01em;
+  color: var(--text-dim);
+  margin: 0 0 4px;
+  font-weight: 500;
+}
+.panel h2 b { color: var(--text); font-weight: 600; }
+.panel .desc {
+  font-size: 12.5px;
+  color: var(--text-faint);
+  margin: 0 0 14px;
+  line-height: 1.5;
+  max-width: 62ch;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+th {
+  text-align: right;
+  color: var(--text-faint);
+  font-weight: 500;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+th:first-child, td:first-child { text-align: left; }
+td {
+  text-align: right;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--panel-alt);
+  white-space: nowrap;
+}
+tr.buy td.sig { color: var(--green); }
+tr.sell td.sig { color: var(--red); }
+tr.hold td.sig { color: var(--text-faint); }
+.chart-box { position: relative; height: 230px; }
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 14px;
+}
+.stat {
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 10px 12px;
+}
+.stat .label { font-size: 11px; color: var(--text-faint); margin-bottom: 4px; }
+.stat .value { font-family: var(--font-mono); font-size: 16px; font-weight: 600; }
+.stat .value.pos { color: var(--green); }
+.stat .value.neg { color: var(--red); }
+.legend-row {
+  display: flex;
+  gap: 18px;
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 10px;
+  font-family: var(--font-mono);
+}
+.legend-row .dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; }
+
+.pipeline {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0;
+  align-items: stretch;
+  margin-top: 4px;
+}
+.pipe-node {
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 12px 10px;
+  text-align: center;
+  position: relative;
+}
+.pipe-node .file {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--teal);
+  margin-bottom: 6px;
+  word-break: break-word;
+}
+.pipe-node .role { font-size: 11.5px; color: var(--text-dim); line-height: 1.4; }
+.pipe-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-faint);
+  font-size: 16px;
+}
+@media (max-width: 760px) {
+  .pipeline { grid-template-columns: 1fr; }
+  .pipe-arrow { transform: rotate(90deg); padding: 2px 0; }
+}
+
+.footnote {
+  font-size: 12px;
+  color: var(--text-faint);
+  margin-top: 26px;
+  line-height: 1.6;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+.footnote code { font-family: var(--font-mono); color: var(--text-dim); }
+
+.risk-panel-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 18px;
+}
+@media (max-width: 900px) { .risk-panel-grid { grid-template-columns: 1fr; } }
+.ks-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--panel-alt);
+}
+.ks-badge .light {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+}
+.ks-badge.tripped { border-color: var(--red); color: var(--red); }
+.ks-badge.tripped .light { background: var(--red); box-shadow: 0 0 8px var(--red); animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+.controls { display: flex; gap: 8px; align-items: center; margin: 12px 0 14px; flex-wrap: wrap; }
+.controls button {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 7px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.controls button:hover { border-color: var(--teal); color: var(--teal); }
+.controls button:disabled { opacity: 0.4; cursor: default; }
+.controls .progress {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-faint);
+  margin-left: auto;
+}
+.log-box {
+  height: 300px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+}
+.log-box table { font-size: 11.5px; }
+.log-box thead th {
+  position: sticky; top: 0;
+  background: var(--panel);
+  z-index: 1;
+}
+tr.st-filled td.status { color: var(--text-dim); }
+tr.st-killed td.status { color: var(--red); }
+tr.st-ratelimit td.status { color: var(--amber); }
+tr.st-open td.status { color: var(--teal); font-weight: 600; }
+td.pnl-pos { color: var(--green); }
+td.pnl-neg { color: var(--red); }
+.mini-note {
+  font-size: 12px;
+  color: var(--text-faint);
+  margin-top: 10px;
+  line-height: 1.6;
+}
+.rate-demo-table { margin-top: 8px; }
+.rate-demo-table td, .rate-demo-table th { padding: 4px 8px; }
+
+.context-disclaimer {
+  font-size: 12px;
+  color: var(--text-faint);
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 10px 14px;
+  margin-top: 10px;
+  line-height: 1.6;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    <div>
+      <h1>NIFTY EDGE TERMINAL</h1>
+      <div class="sub">Probability model &middot; backtest &middot; calibration &middot; adaptive layer &mdash; one pipeline, offline validation build</div>
+    </div>
+    <div class="ticker" id="ticker"></div>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>LIVE CHAIN &middot; <b>NIFTY weekly, price-mode edge</b></h2>
+      <p class="desc">Model's own Black-Scholes price vs the synthetic market premium, per strike. This is the corrected comparison from the backtest &mdash; price vs price, not probability vs probability.</p>
+      <table id="signalsTable">
+        <thead>
+          <tr><th>Strike</th><th>Mkt Price</th><th>Model Price</th><th>Mkt P(&gt;K)</th><th>Model P(&gt;K)</th><th>Edge</th><th>Signal</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>PIPELINE &middot; <b>what's stitched together here</b></h2>
+      <p class="desc">Each block is a delivered module. Data flows left to right; the adaptive layer feeds back into the model on every resolved expiry.</p>
+      <div class="pipeline" id="pipeline"></div>
+    </div>
+  </div>
+
+  
+  <div class="grid">
+    <div class="panel">
+      <h2>GAMMA WALL &middot; <b>real Black-Scholes Greeks by strike</b></h2>
+      <p class="desc">Delta and gamma computed from the model's own vol forecast -- genuinely well-defined here, since these are real vanilla options (unlike the original bot's binary yes/no markets, which don't have real Greeks at all). Gamma exposure = illustrative open interest &times; gamma; real per-strike OI needs a live fetch (see the Market Context panel's PCR source for how).</p>
+      <div class="chart-box"><canvas id="gammaWallChart"></canvas></div>
+      <div class="legend-row">
+        <span><i class="dot" style="background:var(--teal)"></i>gamma exposure</span>
+        <span style="color:var(--text-faint);">strikes on the x-axis, spot at center</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>EXPIRY DECAY RING &middot; <b>mispricing magnitude vs. days-to-expiry</b></h2>
+      <p class="desc">The SAME synthetic vol-misestimation, priced at several days-to-expiry values. Answers a real question -- does mispricing from a fixed vol error look bigger as expiry approaches -- rather than being decorative. (Reinterpreted from the original 'Expiry Torus'; the ring stays, the data underneath is now a genuine measurement.)</p>
+      <div class="chart-box"><canvas id="expiryRingChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-bottom:18px;">
+    <h2>SIGNAL CASCADE &middot; <b>BUY vs SELL clustering across the backtest</b></h2>
+    <p class="desc">Real BUY_CALL / SELL_CALL counts from the actual backtest trade stream, in rolling windows. Named after the original 'Hawkes Cascade' panel, which modeled self-exciting order-FILL clustering -- a real technique, but one needing tick-level fill data. This strategy places roughly one trade per weekly expiry, not thousands of fills per hour, so there's no tick stream to fit a Hawkes process to. This shows real signal-type clustering instead -- a simpler, honest stand-in.</p>
+    <div class="chart-box" style="height:180px;"><canvas id="cascadeChart"></canvas></div>
+    <div class="legend-row">
+      <span><i class="dot" style="background:var(--green)"></i>BUY_CALL</span>
+      <span><i class="dot" style="background:var(--red)"></i>SELL_CALL</span>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>BACKTEST &middot; <b>probability-edge vs price-edge</b></h2>
+      <p class="desc">Same 200 synthetic expiries, same mispricing, two signal modes. Comparing P(S&gt;K) is well-calibrated but doesn't price a convex payoff correctly &mdash; comparing model price to market price does.</p>
+      <div class="chart-box"><canvas id="equityChart"></canvas></div>
+      <div class="legend-row">
+        <span><i class="dot" style="background:var(--red)"></i>prob-mode edge</span>
+        <span><i class="dot" style="background:var(--teal)"></i>price-mode edge</span>
+      </div>
+      <div class="stat-row" id="backtestStats"></div>
+    </div>
+
+    <div class="panel">
+      <h2>CALIBRATION &middot; <b>price-mode model</b></h2>
+      <p class="desc">Each point buckets trades by model probability and plots the actual realized frequency. Points on the diagonal mean the model isn't over- or under-confident.</p>
+      <div class="chart-box"><canvas id="calibChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: 1fr;">
+    <div class="panel">
+      <h2>REGIME SHIFT &middot; <b>static model vs adaptive refit</b></h2>
+      <p class="desc">True daily volatility doubles at the marked line (a stress period). The static model's vol forecast never updates and keeps underpricing risk; the adaptive model refits HAR-RV on a trailing window every 20 expiries and recovers.</p>
+      <div class="chart-box" style="height:280px;"><canvas id="regimeChart"></canvas></div>
+      <div class="legend-row">
+        <span><i class="dot" style="background:var(--red)"></i>static (fit once)</span>
+        <span><i class="dot" style="background:var(--green)"></i>adaptive (rolling refit)</span>
+      </div>
+      <div class="stat-row" id="regimeStats"></div>
+    </div>
+  </div>
+
+  
+  <div class="panel" style="margin-bottom:18px;">
+    <h2>PAPER TRADING &amp; RISK CONTROL &middot; <b id="paperPanelSubtitle">live forward record</b></h2>
+    <p class="desc" id="paperPanelDesc">Your actual forward paper-trading history from run_daily_paper_trade.py -- real decisions made without knowing the outcome in advance, tagged with Strategy IDs and enforced by a real kill switch. Press Play to replay it order-by-order, or just read the table directly.</p>
+
+    <div class="risk-panel-grid">
+      <div>
+        <div class="controls">
+          <span class="ks-badge" id="ksBadge"><span class="light"></span><span id="ksLabel">ARMED</span></span>
+        </div>
+        <div class="controls">
+          <button id="playBtn">&#9654; Play</button>
+          <button id="pauseBtn" disabled>&#10073;&#10073; Pause</button>
+          <button id="resetBtn">&#8634; Reset</button>
+          <button id="skipBtn">&#9197; Skip to trip</button>
+          <span class="progress" id="progressLabel">0 / 0 orders</span>
+        </div>
+        <div class="chart-box" style="height:200px;">
+          <canvas id="paperPnlChart"></canvas>
+        </div>
+        <p class="mini-note" id="ksReasonNote"></p>
+
+        <p class="mini-note"><b style="color:var(--text-dim)">Rate limiter</b> (separate demo, 15 orders submitted in one second, cap = 10/sec):</p>
+        <table class="rate-demo-table">
+          <thead><tr><th>Order</th><th>1&ndash;10</th><th>11&ndash;15</th></tr></thead>
+          <tbody><tr><td>Status</td><td style="color:var(--text-dim)">FILLED</td><td style="color:var(--amber)">REJECTED_RATE_LIMIT</td></tr></tbody>
+        </table>
+      </div>
+
+      <div>
+        <div class="log-box" id="logBox">
+          <table>
+            <thead>
+              <tr><th>Day</th><th>Strategy ID</th><th>Strike</th><th>Side</th><th>Price</th><th>P&amp;L</th><th>Status</th></tr>
+            </thead>
+            <tbody id="logTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="grid">
+    <div class="panel">
+      <h2>MARKET CONTEXT &middot; <b>India VIX vs model's realized-vol forecast</b></h2>
+      <p class="desc">India VIX is the market's own options-implied volatility gauge. The model's HAR-RV forecast estimates realized volatility from price history. The gap between them is the variance risk premium -- the thing the sell-ATM baseline was actually harvesting, not a mispricing the model found.</p>
+      <div class="chart-box"><canvas id="vixChart"></canvas></div>
+      <div class="legend-row">
+        <span><i class="dot" style="background:var(--amber)"></i>India VIX (implied)</span>
+        <span><i class="dot" style="background:var(--teal)"></i>model's realized-vol forecast</span>
+      </div>
+      <div class="stat-row" id="vixStats"></div>
+    </div>
+
+    <div class="panel">
+      <h2>PUT-CALL RATIO &middot; <b>open-interest based</b></h2>
+      <p class="desc">Total put OI / total call OI for the nearest expiry, computed from the same bhavcopy file already used for pricing. A commonly-cited positioning gauge -- elevated PCR is conventionally read as more hedging/bearish positioning -- but this is context, not a signal this pipeline has validated.</p>
+      <div class="chart-box"><canvas id="pcrChart"></canvas></div>
+      <div class="stat-row" id="pcrStats"></div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-bottom:18px;">
+    <div class="context-disclaimer">
+      <b style="color:var(--text-dim)">What this panel is, and isn't:</b> VIX, PCR, and Max Pain are real, NSE-published figures, not synthetic -- but they are market-conditions context, not trading signals this pipeline has backtested or validated. Nothing on this page has demonstrated a real, tradeable edge (see the backtest and paper-trading panels above). Deliberately excluded: FII/DII flows, global cues (Dow, crude, SGX/GIFT Nifty), news sentiment, and anything positioned as a "market projection" -- these either require data sources beyond this free NSE pipeline, or risk exactly the false-confidence trap this project spent many rounds debugging out of. More charts do not create more edge.
+    </div>
+  </div>
+
+  <div class="footnote">
+    All figures on this page come from synthetic data generated by <code>probability_model.py</code>, <code>backtest.py</code>, and <code>adaptive_model.py</code> &mdash; this validates the pipeline's logic and wiring, not a real-market edge. Swap in <code>fetch_nse_historical.py</code> output before drawing conclusions about actual Nifty markets.
+  </div>
+
+</div>
+
+<script>
+const DATA = {"signals":[{"strike":24200.0,"market_prob":1.0,"model_prob":0.876,"market_price":661.6,"model_price":650.57,"edge_pct":-1.67,"signal":"NO_TRADE"},{"strike":24300.0,"market_prob":0.748,"model_prob":0.833,"market_price":570.04,"model_price":565.12,"edge_pct":-0.86,"signal":"NO_TRADE"},{"strike":24400.0,"market_prob":0.673,"model_prob":0.781,"market_price":500.91,"model_price":484.42,"edge_pct":-3.29,"signal":"SELL_CALL"},{"strike":24500.0,"market_prob":0.673,"model_prob":0.721,"market_price":427.71,"model_price":409.29,"edge_pct":-4.31,"signal":"SELL_CALL"},{"strike":24600.0,"market_prob":0.673,"model_prob":0.655,"market_price":349.32,"model_price":340.48,"edge_pct":-2.53,"signal":"NO_TRADE"},{"strike":24700.0,"market_prob":0.506,"model_prob":0.584,"market_price":291.43,"model_price":278.56,"edge_pct":-4.42,"signal":"SELL_CALL"},{"strike":24800.0,"market_prob":0.499,"model_prob":0.51,"market_price":241.34,"model_price":223.91,"edge_pct":-7.22,"signal":"SELL_CALL"},{"strike":24900.0,"market_prob":0.443,"model_prob":0.436,"market_price":193.03,"model_price":176.66,"edge_pct":-8.48,"signal":"SELL_CALL"},{"strike":25000.0,"market_prob":0.375,"model_prob":0.365,"market_price":152.98,"model_price":136.68,"edge_pct":-10.66,"signal":"SELL_CALL"},{"strike":25100.0,"market_prob":0.314,"model_prob":0.298,"market_price":117.82,"model_price":103.62,"edge_pct":-12.05,"signal":"SELL_CALL"},{"strike":25200.0,"market_prob":0.222,"model_prob":0.238,"market_price":91.46,"model_price":76.92,"edge_pct":-15.89,"signal":"SELL_CALL"},{"strike":25300.0,"market_prob":0.215,"model_prob":0.185,"market_price":68.44,"model_price":55.88,"edge_pct":-18.36,"signal":"SELL_CALL"}],"spot":24800.0,"annualized_vol_pct":19.85,"backtest":{"prob_mode":{"equity_curve":[145.80609299526688,3271.9357983781006,2735.6603485487626,4188.242201443645,2686.9847937879886,3174.7436977270518,512.7974140667253,1880.682179972743,4111.538871034854,6898.9115893993085,6801.522373530052,9732.097716606218,7032.542505056231,6772.950050543616,9268.479536711135,6636.231151574849,2956.9672348899767,69.18724507402203,-1712.9603341884365,-3175.128369128166,-4283.909080051208,-3281.5684625757167,-6423.850025866821,-6028.159100451158,-7863.428688423716,-6351.50845197512,-6458.904669048952,-3020.3289227752807,-4430.898837308135,-6099.952756014712,-6762.303631348184,-5915.760517867433,-1577.7594044782154,1886.734262731946,928.5781161918906,979.8884069676087,-448.9244363441678,944.5574681795166,3550.421012371611,14895.83999763721,27031.10598472179,30018.25085114956,28445.462681320492,27069.073865249786,25621.30603783564,22079.818012887794,20569.662120097542,18103.415061282045,20047.684273134004,23435.75498999095,24502.134582973496,24410.07178960897,28292.840786183693,35412.53136997668,31907.04618923033,30606.240847415516,44352.55840963738,42028.23091460238,46757.07597846701,48497.11398840353,57270.73111153529,60203.09770322623,57205.97615037522,53287.34430320491,49488.00917591931,49527.467829232875,45024.99731831666,42463.511766412434,42516.90849736556,37943.94021966102,38014.08057355368,44065.66643542516,46862.130177825406,42577.52392939279,40414.31097802972,38076.77573297306,34032.891824578124,32237.235238754547,37307.57360763814,35345.914213494,31240.681485575536,27899.700205096946,25432.639298000526,24694.553582524743,21404.642134112684,17001.72670187657,15218.209850272255,11819.7063884613,16081.761102534043,17873.50956155557,12767.39780416236,9387.912684166167,6482.527508808975,6366.407645856231,8164.292301782894,6340.369321572995,2930.912484744231,-226.0393550006705,-2552.2420265996852,-7844.856508311632,-6396.170567754577,-9392.034767114796,-7048.852032988521,-8569.21949198238,-13470.984053101716,-16917.244948585678,-19334.39959083378,-19504.4403008366,-19654.191450366783,-18398.634670633328,-21328.496627948298,-16232.678024467223,-15050.032604991118,-14279.256411552877,-12144.995114271145,-13583.888792746775,-15374.963502342765,-17499.18311284879,-20130.474949101786,-20206.376029129384],"summary":{"n_trades":1506,"win_rate":0.4169986719787517,"total_pnl":-20206.376029129387,"avg_pnl_per_trade":-13.417248359315662,"max_drawdown":-82194.94798843414,"sharpe_annualized":-0.45576895662397354}},"price_mode":{"equity_curve":[200.8556129379019,-1596.3622359678473,-6276.9467636218915,-5799.094955582455,-3385.9838438736847,-3831.3888734485704,-946.7615976184509,166.92758819904384,-2085.5192696943795,-3987.8606679343675,-6702.339732548733,-7260.87195205821,-8184.441110362864,-5176.531686810031,-3973.509994005352,-6140.43748539793,-2666.3341578672903,116.0197935267977,670.8607698825792,3422.193646350487,5310.409227822148,6010.688656086868,8671.766443989485,7248.728333473793,9724.321604115004,10541.280967101979,12688.41673969975,14428.652818637564,9604.660721568162,11029.883404041708,9300.84576126671,11156.882210866457,12468.713146522216,15155.857139459564,15104.365308084098,6547.737237633709,3153.3441248545523,-4085.655294269282,-4132.533795068167,-3348.0470906064406,-7173.802418370134,-9019.361327018269,-27851.335830349686,-38247.94304784609,-34106.414131520476,-31087.188530449883,-29661.371637536344,-26194.554527120792,-22733.74401421939,-20846.172737204175,-24020.30637991698,-34910.34826472908,-41499.80639295617,-39403.98314073266,-45051.85867998204,-47193.46942529071,-42972.14793283085,-52065.44667880033,-49554.10060625245,-56644.5409143453,-59933.73449169945,-68264.14976527027,-70059.73611751823,-65542.73863793336,-60722.8635540568,-58003.77645641832,-53733.31063472548,-50864.93140387042,-49194.22290356907,-43573.81305126529,-52307.83073466501,-64934.62787834948,-67182.05251526425,-62620.7183198209,-59993.328378923696,-53945.681978700275,-49074.23726317588,-46330.84568014889,-52456.36962411938,-48888.148218407594,-44086.11838860596,-39679.94165644104,-36046.84907746163,-31195.179500431026,-26362.086037347333,-22881.433750223598,-17366.741095461748,-17025.899435118787,-20376.420793470963,-32692.607825794697,-26184.367273746422,-19732.0126436391,-14867.27964702131,-16215.181146289664,-11578.272285895526,-6795.444823215251,-7178.620202361105,-2383.5759156655863,2446.5808487390573,5396.334250442755,1843.9122310474665,-421.6435631674678,2377.0797195699774,5566.068397281075,9208.763724400545,15176.530323711639,19315.792063464974,19817.64002299579,22911.57059180487,21353.214503270265,24644.998051120194,19125.089231286,17591.360359977392,18941.78246979662,8770.63502647322,14185.016956752437,16130.898695546108,20333.913909376806,23342.186250162173,24342.31600964897],"summary":{"n_trades":1921,"win_rate":0.7001561686621551,"total_pnl":24342.316009649046,"avg_pnl_per_trade":12.671689749947447,"max_drawdown":-85267.15200459167,"sharpe_annualized":0.49941748740043224}}},"calibration":[{"bucket_mid":0.164,"realized_freq":0.22,"n":109},{"bucket_mid":0.257,"realized_freq":0.268,"n":306},{"bucket_mid":0.348,"realized_freq":0.324,"n":321},{"bucket_mid":0.435,"realized_freq":0.424,"n":264},{"bucket_mid":0.542,"realized_freq":0.517,"n":389},{"bucket_mid":0.651,"realized_freq":0.66,"n":318},{"bucket_mid":0.747,"realized_freq":0.747,"n":182},{"bucket_mid":0.825,"realized_freq":0.812,"n":32}],"regime_shift":{"shift_day":615,"total_days":1230,"static_curve":[[123,-933.7870101040858],[129,-5445.204503754348],[135,-3500.7456921108615],[144,-3536.2016899624323],[150,-1747.0023566624282],[159,-1207.3631321047185],[165,-114.00277720468807],[174,-2291.9903932510856],[180,-2694.8213659691155],[189,-1156.8709298638012],[195,379.39406429827056],[204,-1187.9451510080146],[210,-1621.972680864204],[219,-1528.7840572993414],[225,-1674.5137033844944],[234,1008.4298526296105],[240,3975.112637631125],[246,5464.898950811928],[255,6086.760088172738],[261,5191.822431428777],[270,8119.47460413753],[276,7491.849292397377],[285,7603.666120042368],[291,9877.657951340523],[300,9327.058169107495],[306,11833.911043740938],[315,10750.802177853238],[321,12377.457985101497],[330,13215.482081892358],[336,14204.733894208674],[345,16018.63767169698],[351,14751.977650256795],[360,11099.154986905962],[366,12535.657537965837],[372,13758.942078060687],[381,16617.744186220945],[387,15835.753379483136],[396,15072.739146382366],[402,16390.841956971813],[411,19490.061254525757],[417,21908.58703786636],[426,23362.072663763924],[432,24871.078084169727],[441,26500.774098287788],[447,28159.476693427572],[456,30764.688056896],[462,32377.711615951303],[471,34095.47483727893],[477,33749.02595064234],[486,30573.331081110155],[492,31856.692528298605],[498,31091.846031565354],[507,33643.32562360047],[513,34063.59928883407],[522,34811.47780918828],[528,35337.1582661608],[537,32384.24889902728],[543,32353.834351350877],[552,30863.32950256128],[558,32001.960154373017],[567,32564.681296198127],[573,34018.87551276658],[582,35471.39550492287],[588,36099.6908298139],[597,36185.32458361805],[603,33765.118477478376],[612,34532.78786880794],[618,28876.765515706087],[624,27688.837687775937],[633,15256.464454625926],[639,17185.221716072047],[648,2910.959160306378],[654,4750.060484627636],[663,2789.4947707524902],[669,-4555.676834685547],[678,-3540.5952362399094],[684,-4344.651266934044],[693,-16369.972160568497],[699,-13150.568327129477],[708,-17066.938501031735],[714,-25952.17402370937],[723,-32486.615029191806],[729,-38690.951068390714],[735,-55585.03897018777],[744,-49838.49137661637],[750,-47836.978198607685],[759,-47124.35161170614],[765,-46991.201817897774],[774,-48621.656866683945],[780,-50521.332711367744],[789,-47754.06180901186],[795,-45477.570034335855],[804,-46298.51872028529],[810,-51652.25473965883],[819,-53338.213494754855],[825,-64828.17279976346],[834,-67750.05301646318],[840,-77055.20688578414],[849,-77957.27739002129],[855,-80293.83826152112],[861,-93453.57452915315],[870,-108089.48316748269],[876,-111872.57181306527],[885,-134205.27359484026],[891,-135902.8172776079],[900,-129111.96006971426],[906,-130400.11985673216],[915,-125011.40983468638],[921,-125305.94256723025],[930,-127750.1411602884],[936,-137620.55259845717],[945,-146403.45382748908],[951,-141110.2678257439],[960,-135511.2956050117],[966,-137830.5620855537],[975,-151691.54543423865],[981,-159685.1625913468],[987,-158156.68770415755],[996,-151841.85644866384],[1002,-189855.60353258703],[1011,-187074.77794610482],[1017,-195523.5497540567],[1026,-192347.24038404063],[1032,-199080.58104981828],[1041,-192172.93611734183],[1047,-187125.38744136557],[1056,-179892.51908095955],[1062,-177698.6663020067],[1071,-179215.95970242828],[1077,-178681.2954680887],[1086,-216769.06846125695],[1092,-217782.7715279791],[1101,-234948.18839383355],[1107,-241098.83630981474],[1113,-235265.2834957453],[1122,-236928.64721685273],[1128,-232872.24423536108],[1137,-260522.89370044626],[1143,-255101.96706474203],[1152,-249679.9906334842],[1158,-244503.6492783184],[1167,-253399.7235726911],[1173,-266197.7617389961],[1182,-260036.81802508145],[1188,-256333.92994429308],[1197,-261241.88628471593],[1203,-270657.986318661],[1212,-266138.3946324389],[1218,-263385.44254257943],[1227,-260633.84633785294]],"adaptive_curve":[[123,-720.6129509982466],[129,-5195.21783513541],[135,-3097.385054189556],[144,-3083.5787580463752],[150,-1241.6611815627703],[159,-633.1829669271988],[165,485.4082804449613],[174,-1725.4709186748369],[180,-2093.448754524564],[189,-523.7451958855587],[195,1040.236584482689],[204,-478.2440729481709],[210,-873.7764828161771],[219,-705.2906086150182],[225,-836.5576603905406],[234,1931.3591281471197],[240,4933.890264270698],[246,6420.384745894095],[255,7041.974955084819],[261,6152.810595404857],[270,9086.355662996893],[276,8425.375939444928],[285,8542.821503866684],[291,10821.548681561428],[300,10296.283344553241],[306,12403.85509872698],[315,10838.57772513878],[321,12211.262620978992],[330,12894.301142296606],[336,13770.362564579564],[345,15549.622237983385],[351,14276.152728005483],[360,10503.631712297114],[366,11940.6330065714],[372,13135.28331226419],[381,15947.688607691656],[387,15177.519589531394],[396,14488.005639455685],[402,15839.421509141719],[411,18932.782216504682],[417,21296.59839576092],[426,22775.785322394913],[432,24330.419842319454],[441,25966.359290837554],[447,27641.598814667683],[456,30285.841835733492],[462,32131.761893906536],[471,33876.23111777488],[477,33578.49602422961],[486,30495.58587415921],[492,31793.634384079745],[498,31033.603768630877],[507,33677.20009775304],[513,34106.77654913931],[522,34938.688004854404],[528,35524.41812437072],[537,32645.612075143876],[543,32642.69583029966],[552,31183.182846459702],[558,32315.41446623119],[567,32825.32959489895],[573,34224.94986708669],[582,35657.7063258267],[588,36282.809670949406],[597,36392.92426531713],[603,33983.801302144646],[612,34765.45591771844],[618,29113.25014953664],[624,28064.86336009996],[633,16107.576989550473],[639,18688.879525883804],[648,3775.8181210479124],[654,7638.703676178705],[663,9411.445056194772],[669,2779.013749316413],[678,8627.89613801888],[684,10330.629195543243],[693,-6467.9067029026155],[699,1025.4492171720995],[708,-450.4899901384424],[714,-9488.60033633127],[723,-14006.876055062125],[729,-18501.646875392253],[735,-33037.70898162046],[744,-19800.44710510314],[750,-14781.380934951361],[759,-10834.321136997794],[765,-7904.197815230949],[774,-7612.758044645587],[780,-7620.233307935499],[789,1575.0449272478809],[795,10281.524280939058],[804,12996.68772689223],[810,10065.977509378725],[819,11279.239276691458],[825,2414.8515976642752],[834,6894.8842194924655],[840,-1110.2854519914827],[849,4905.098488442993],[855,5643.749435768448],[861,-6112.291091286248],[870,-18644.230324884535],[876,-18446.548453113002],[885,-41103.860997019896],[891,-38181.76305864297],[900,-22365.551765329605],[906,-19917.761874376465],[915,-3629.4885509798623],[921,514.7715132747335],[930,5062.497555472943],[936,-4109.985044026397],[945,-7533.0375549106575],[951,6154.411387110876],[960,20569.626679513516],[966,20001.103231980625],[975,12353.498568114692],[981,8416.521029538057],[987,15356.17662417407],[996,33186.85304719712],[1002,-2110.7363644663856],[1011,8033.6149390467035],[1017,3007.795782213854],[1026,15879.27255309144],[1032,12501.264599249287],[1041,29810.28927368366],[1047,42882.348291494025],[1056,60429.1713519045],[1062,68657.22537013063],[1071,70955.83989732784],[1077,76467.80962935644],[1086,37142.75484119264],[1092,40546.22826229681],[1101,27990.575531773153],[1107,26035.623889613544],[1113,38115.092617207236],[1122,45263.259735251566],[1128,57188.25378728307],[1137,29478.408830036664],[1143,42508.09798507206],[1152,56564.95319814154],[1158,68816.02442891595],[1167,60592.70350032499],[1173,48814.06959849069],[1182,64321.057052340104],[1188,74393.85049762296],[1197,72765.2824762991],[1203,68190.37640374555],[1212,79176.39639690827],[1218,86365.34162719132],[1227,96946.27999798303]]}}
+;
+
+// ---------- theme-aware chart colors ----------
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+const gridColor = () => cssVar('--border');
+const textColor = () => cssVar('--text-dim');
+Chart.defaults.font.family = "'IBM Plex Mono', monospace";
+Chart.defaults.font.size = 11;
+Chart.defaults.color = textColor();
+
+// ---------- ticker ----------
+const tickerEl = document.getElementById('ticker');
+const priceSummary = DATA.backtest.price_mode.summary;
+const liveUpdatedNote = (PAPER.is_live && PAPER.generated_at)
+  ? `<div>LIVE DATA AS OF <span class="up">${new Date(PAPER.generated_at).toLocaleString()}</span></div>`
+  : '';
+tickerEl.innerHTML = `
+  ${liveUpdatedNote}
+  <div>SPOT <span>${DATA.spot.toFixed(0)}</span></div>
+  <div>ANN VOL <span>${DATA.annualized_vol_pct.toFixed(1)}%</span></div>
+  <div>PRICE-MODE WIN RATE <span class="up">${(priceSummary.win_rate*100).toFixed(1)}%</span></div>
+  <div>SHARPE <span>${priceSummary.sharpe_annualized.toFixed(2)}</span></div>
+`;
+
+// If there's no live paper-trading data yet, say so plainly rather than
+// silently showing an empty table with no explanation.
+if (PAPER.is_live && PAPER.log.length === 0) {
+  document.getElementById('paperPanelSubtitle').textContent = 'no trades yet';
+  document.getElementById('paperPanelDesc').textContent =
+    'run_daily_paper_trade.py hasn\\'t logged any trades yet -- run it at least once, ' +
+    'then rebuild this dashboard to see your real forward paper-trading history here.';
+}
+
+// ---------- signals table ----------
+const tbody = document.querySelector('#signalsTable tbody');
+DATA.signals.forEach(s => {
+  const cls = s.signal === 'BUY_CALL' ? 'buy' : (s.signal === 'SELL_CALL' ? 'sell' : 'hold');
+  const row = document.createElement('tr');
+  row.className = cls;
+  row.innerHTML = `
+    <td>${s.strike.toFixed(0)}</td>
+    <td>${s.market_price.toFixed(2)}</td>
+    <td>${s.model_price.toFixed(2)}</td>
+    <td>${(s.market_prob*100).toFixed(1)}%</td>
+    <td>${(s.model_prob*100).toFixed(1)}%</td>
+    <td>${s.edge_pct > 0 ? '+' : ''}${s.edge_pct.toFixed(1)}%</td>
+    <td class="sig">${s.signal.replace('_',' ')}</td>
+  `;
+  tbody.appendChild(row);
+});
+
+// ---------- pipeline ----------
+const pipelineSteps = [
+  { file: 'fetch_nse_historical.py /<br>broker_data_feed.py', role: 'Historical bhavcopy + live option chain, spot & candle data' },
+  { file: 'probability_model.py', role: 'HAR-RV vol forecast, Breeden-Litzenberger extraction, edge signals' },
+  { file: 'backtest.py', role: 'Walk-forward P&amp;L, win rate, drawdown, calibration' },
+  { file: 'adaptive_model.py', role: 'Rolling refit, isotonic recalibration, adaptive threshold' },
+  { file: '(order execution &mdash;<br>not built yet)', role: 'SEBI Strategy ID, kill switch, broker order placement' },
+];
+const pipelineEl = document.getElementById('pipeline');
+pipelineSteps.forEach((step, i) => {
+  const node = document.createElement('div');
+  node.className = 'pipe-node';
+  node.innerHTML = `<div class="file">${step.file}</div><div class="role">${step.role}</div>`;
+  pipelineEl.appendChild(node);
+  if (i < pipelineSteps.length - 1) {
+    const arrow = document.createElement('div');
+    arrow.className = 'pipe-arrow';
+    arrow.textContent = '\u2192';
+    pipelineEl.appendChild(arrow);
+  }
+});
+
+// ---------- equity curve chart (prob vs price mode) ----------
+new Chart(document.getElementById('equityChart'), {
+  type: 'line',
+  data: {
+    labels: DATA.backtest.price_mode.equity_curve.map((_, i) => i),
+    datasets: [
+      {
+        label: 'prob-mode',
+        data: DATA.backtest.prob_mode.equity_curve,
+        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--red'),
+        backgroundColor: 'transparent',
+        borderWidth: 1.5,
+        pointRadius: 0,
+        tension: 0.15,
+      },
+      {
+        label: 'price-mode',
+        data: DATA.backtest.price_mode.equity_curve,
+        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--teal'),
+        backgroundColor: 'transparent',
+        borderWidth: 1.5,
+        pointRadius: 0,
+        tension: 0.15,
+      },
+    ],
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { display: false },
+      y: { grid: { color: gridColor() }, ticks: { callback: v => v.toLocaleString() } },
+    },
+  },
+});
+
+// ---------- backtest stat cards ----------
+const statsEl = document.getElementById('backtestStats');
+const ps = DATA.backtest.price_mode.summary;
+statsEl.innerHTML = `
+  <div class="stat"><div class="label">WIN RATE</div><div class="value pos">${(ps.win_rate*100).toFixed(1)}%</div></div>
+  <div class="stat"><div class="label">TOTAL P&amp;L</div><div class="value ${ps.total_pnl>=0?'pos':'neg'}">${ps.total_pnl>=0?'+':''}${ps.total_pnl.toFixed(0)}</div></div>
+  <div class="stat"><div class="label">MAX DRAWDOWN</div><div class="value neg">${ps.max_drawdown.toFixed(0)}</div></div>
+  <div class="stat"><div class="label">SHARPE (ANN)</div><div class="value pos">${ps.sharpe_annualized.toFixed(2)}</div></div>
+`;
+
+// ---------- calibration scatter ----------
+new Chart(document.getElementById('calibChart'), {
+  type: 'scatter',
+  data: {
+    datasets: [
+      {
+        label: 'buckets',
+        data: DATA.calibration.map(c => ({ x: c.bucket_mid, y: c.realized_freq, n: c.n })),
+        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--teal'),
+        pointRadius: 5,
+      },
+      {
+        label: 'perfect calibration',
+        data: [{x:0,y:0},{x:1,y:1}],
+        type: 'line',
+        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--text-faint'),
+        borderDash: [4,4],
+        borderWidth: 1,
+        pointRadius: 0,
+      },
+    ],
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { min:0, max:1, title: { display: true, text: 'model P(above strike)' }, grid: { color: gridColor() } },
+      y: { min:0, max:1, title: { display: true, text: 'realized frequency' }, grid: { color: gridColor() } },
+    },
+  },
+});
+
+// ---------- regime shift chart ----------
+const staticCurve = DATA.regime_shift.static_curve;
+const adaptiveCurve = DATA.regime_shift.adaptive_curve;
+new Chart(document.getElementById('regimeChart'), {
+  type: 'line',
+  data: {
+    labels: staticCurve.map(p => p[0]),
+    datasets: [
+      {
+        label: 'static', data: staticCurve.map(p => p[1]),
+        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--red'),
+        backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, tension: 0.1,
+      },
+      {
+        label: 'adaptive', data: adaptiveCurve.map(p => p[1]),
+        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--green'),
+        backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, tension: 0.1,
+      },
+    ],
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      annotation: undefined,
+    },
+    scales: {
+      x: { title: { display: true, text: 'trading day' }, grid: { color: gridColor() } },
+      y: { grid: { color: gridColor() }, ticks: { callback: v => v.toLocaleString() } },
+    },
+  },
+});
+
+// ---------- regime stat cards ----------
+const regimeStatsEl = document.getElementById('regimeStats');
+const staticFinal = staticCurve[staticCurve.length-1][1];
+const adaptiveFinal = adaptiveCurve[adaptiveCurve.length-1][1];
+regimeStatsEl.innerHTML = `
+  <div class="stat"><div class="label">STATIC FINAL P&amp;L</div><div class="value ${staticFinal>=0?'pos':'neg'}">${staticFinal>=0?'+':''}${staticFinal.toFixed(0)}</div></div>
+  <div class="stat"><div class="label">ADAPTIVE FINAL P&amp;L</div><div class="value ${adaptiveFinal>=0?'pos':'neg'}">${adaptiveFinal>=0?'+':''}${adaptiveFinal.toFixed(0)}</div></div>
+  <div class="stat"><div class="label">REGIME SHIFT AT</div><div class="value">day ${DATA.regime_shift.shift_day}</div></div>
+  <div class="stat"><div class="label">TOTAL SIM DAYS</div><div class="value">${DATA.regime_shift.total_days}</div></div>
+`;
+
+// ======================= PAPER TRADING REPLAY =======================
+const PAPER = {"kill_switch_limit":-20000,"run_id":"PAPER","log":[{"day":"2026-09-16","strategy_id":"STRAT-PAPER-000001","strike":23200.0,"side":"SELL_CALL","price":177.5,"status":"OPEN","pnl":null,"cum_pnl":0.0}],"summary":{"total_orders":1,"filled":0,"blocked_by_kill_switch":0,"rejected_rate_limit":0,"realized_pnl":0.0,"kill_switch_tripped":false,"kill_switch_reason":null},"is_live":true,"generated_at":"2026-09-17T12:27:05.912753"};
+
+const logTbody = document.getElementById('logTbody');
+const logBox = document.getElementById('logBox');
+const ksBadge = document.getElementById('ksBadge');
+const ksLabel = document.getElementById('ksLabel');
+const ksReasonNote = document.getElementById('ksReasonNote');
+const progressLabel = document.getElementById('progressLabel');
+const playBtn = document.getElementById('playBtn');
+const pauseBtn = document.getElementById('pauseBtn');
+const resetBtn = document.getElementById('resetBtn');
+const skipBtn = document.getElementById('skipBtn');
+
+let replayIdx = 0;
+let replayTimer = null;
+
+const pnlChart = new Chart(document.getElementById('paperPnlChart'), {
+  type: 'line',
+  data: {
+    labels: [],
+    datasets: [
+      {
+        label: 'cumulative P&L',
+        data: [],
+        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--teal'),
+        backgroundColor: 'transparent',
+        borderWidth: 1.5,
+        pointRadius: 0,
+        tension: 0.1,
+      },
+      {
+        label: 'kill switch limit',
+        data: [],
+        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--red'),
+        borderDash: [4,4],
+        borderWidth: 1,
+        pointRadius: 0,
+      },
+    ],
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    animation: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { display: false },
+      y: { grid: { color: gridColor() }, ticks: { callback: v => v.toLocaleString() } },
+    },
+  },
+});
+
+function statusClass(status) {
+  if (status === 'FILLED') return 'st-filled';
+  if (status === 'OPEN') return 'st-open';
+  if (status === 'BLOCKED_KILL_SWITCH') return 'st-killed';
+  if (status === 'REJECTED_RATE_LIMIT') return 'st-ratelimit';
+  return '';
+}
+
+function appendRow(row) {
+  const tr = document.createElement('tr');
+  tr.className = statusClass(row.status);
+  const pnlCls = row.pnl == null ? '' : (row.pnl >= 0 ? 'pnl-pos' : 'pnl-neg');
+  const pnlText = row.pnl == null ? '&mdash;' : (row.pnl >= 0 ? '+' : '') + row.pnl.toFixed(1);
+  tr.innerHTML = `
+    <td>${row.day}</td>
+    <td>${row.strategy_id}</td>
+    <td>${row.strike.toFixed(0)}</td>
+    <td>${row.side.replace('_',' ')}</td>
+    <td>${row.price.toFixed(2)}</td>
+    <td class="${pnlCls}">${pnlText}</td>
+    <td class="status">${row.status.replace(/_/g,' ')}</td>
+  `;
+  logTbody.appendChild(tr);
+  logBox.scrollTop = logBox.scrollHeight;
+
+  pnlChart.data.labels.push(row.day);
+  pnlChart.data.datasets[0].data.push(row.cum_pnl);
+  pnlChart.data.datasets[1].data.push(PAPER.kill_switch_limit);
+  pnlChart.update('none');
+}
+
+function setTripped(tripped) {
+  if (tripped) {
+    ksBadge.classList.add('tripped');
+    ksLabel.textContent = 'TRIPPED';
+    ksReasonNote.innerHTML = `<b style="color:var(--red)">Kill switch tripped:</b> ${PAPER.summary.kill_switch_reason}. No further orders placed for the rest of the session.`;
+  } else {
+    ksBadge.classList.remove('tripped');
+    ksLabel.textContent = 'ARMED';
+    ksReasonNote.textContent = '';
+  }
+}
+
+function stepReplay() {
+  if (replayIdx >= PAPER.log.length) {
+    stopReplay();
+    if (PAPER.summary.kill_switch_tripped) setTripped(true);
+    return;
+  }
+  appendRow(PAPER.log[replayIdx]);
+  replayIdx++;
+  progressLabel.textContent = `${replayIdx} / ${PAPER.log.length} orders`;
+}
+
+function startReplay() {
+  if (replayTimer) return;
+  playBtn.disabled = true;
+  pauseBtn.disabled = false;
+  replayTimer = setInterval(stepReplay, 35);
+}
+
+function stopReplay() {
+  clearInterval(replayTimer);
+  replayTimer = null;
+  playBtn.disabled = false;
+  pauseBtn.disabled = true;
+}
+
+function resetReplay() {
+  stopReplay();
+  replayIdx = 0;
+  logTbody.innerHTML = '';
+  pnlChart.data.labels = [];
+  pnlChart.data.datasets[0].data = [];
+  pnlChart.data.datasets[1].data = [];
+  pnlChart.update('none');
+  progressLabel.textContent = `0 / ${PAPER.log.length} orders`;
+  setTripped(false);
+}
+
+function skipToEnd() {
+  stopReplay();
+  while (replayIdx < PAPER.log.length) stepReplay();
+}
+
+playBtn.addEventListener('click', startReplay);
+pauseBtn.addEventListener('click', stopReplay);
+resetBtn.addEventListener('click', resetReplay);
+skipBtn.addEventListener('click', skipToEnd);
+
+resetReplay();
+
+
+// ======================= MARKET CONTEXT =======================
+const CONTEXT = {"vix_vs_realized":[{"date":"2025-09-17","vix":10.25,"realized_vol_forecast":5.72},{"date":"2025-09-18","vix":9.89,"realized_vol_forecast":5.84},{"date":"2025-09-19","vix":9.97,"realized_vol_forecast":6.02},{"date":"2025-09-22","vix":10.56,"realized_vol_forecast":0.16},{"date":"2025-09-23","vix":10.63,"realized_vol_forecast":9.81},{"date":"2025-09-24","vix":10.52,"realized_vol_forecast":8.47},{"date":"2025-09-25","vix":10.78,"realized_vol_forecast":7.06},{"date":"2025-09-26","vix":11.43,"realized_vol_forecast":14.47},{"date":"2025-09-29","vix":11.37,"realized_vol_forecast":0.16},{"date":"2025-09-30","vix":11.07,"realized_vol_forecast":0.62},{"date":"2025-10-01","vix":10.29,"realized_vol_forecast":7.67},{"date":"2025-10-03","vix":10.06,"realized_vol_forecast":5.83},{"date":"2025-10-06","vix":10.19,"realized_vol_forecast":9.71},{"date":"2025-10-07","vix":10.05,"realized_vol_forecast":9.33},{"date":"2025-10-08","vix":10.31,"realized_vol_forecast":8.08},{"date":"2025-10-09","vix":10.12,"realized_vol_forecast":9.48},{"date":"2025-10-10","vix":10.1,"realized_vol_forecast":8.65},{"date":"2025-10-13","vix":11.01,"realized_vol_forecast":10.42},{"date":"2025-10-14","vix":11.16,"realized_vol_forecast":8.69},{"date":"2025-10-15","vix":10.53,"realized_vol_forecast":6.61},{"date":"2025-10-16","vix":10.87,"realized_vol_forecast":0.16},{"date":"2025-10-17","vix":11.63,"realized_vol_forecast":3.76},{"date":"2025-10-20","vix":11.36,"realized_vol_forecast":6.06},{"date":"2025-10-21","vix":11.3,"realized_vol_forecast":4.88},{"date":"2025-10-23","vix":11.73,"realized_vol_forecast":5.85},{"date":"2025-10-24","vix":11.59,"realized_vol_forecast":8.17},{"date":"2025-10-27","vix":11.86,"realized_vol_forecast":7.93},{"date":"2025-10-28","vix":11.95,"realized_vol_forecast":7.75},{"date":"2025-10-29","vix":11.97,"realized_vol_forecast":7.86},{"date":"2025-10-30","vix":12.07,"realized_vol_forecast":8.09},{"date":"2025-10-31","vix":12.15,"realized_vol_forecast":7.04},{"date":"2025-11-03","vix":12.67,"realized_vol_forecast":7.44},{"date":"2025-11-04","vix":12.65,"realized_vol_forecast":7.67},{"date":"2025-11-06","vix":12.41,"realized_vol_forecast":7.51},{"date":"2025-11-07","vix":12.56,"realized_vol_forecast":9.02},{"date":"2025-11-10","vix":12.3,"realized_vol_forecast":9.29},{"date":"2025-11-11","vix":12.49,"realized_vol_forecast":8.74},{"date":"2025-11-12","vix":12.11,"realized_vol_forecast":8.76},{"date":"2025-11-13","vix":12.16,"realized_vol_forecast":8.6},{"date":"2025-11-14","vix":11.94,"realized_vol_forecast":8.4},{"date":"2025-11-17","vix":11.79,"realized_vol_forecast":8.29},{"date":"2025-11-18","vix":12.1,"realized_vol_forecast":8.72},{"date":"2025-11-19","vix":11.97,"realized_vol_forecast":9.91},{"date":"2025-11-20","vix":12.14,"realized_vol_forecast":9.27},{"date":"2025-11-21","vix":13.63,"realized_vol_forecast":8.83},{"date":"2025-11-24","vix":13.24,"realized_vol_forecast":8.46},{"date":"2025-11-25","vix":12.24,"realized_vol_forecast":8.24},{"date":"2025-11-26","vix":11.97,"realized_vol_forecast":4.99},{"date":"2025-11-27","vix":11.79,"realized_vol_forecast":6.7},{"date":"2025-11-28","vix":11.62,"realized_vol_forecast":6.72},{"date":"2025-12-01","vix":11.63,"realized_vol_forecast":7.16},{"date":"2025-12-02","vix":11.23,"realized_vol_forecast":7.09},{"date":"2025-12-03","vix":11.21,"realized_vol_forecast":10.15},{"date":"2025-12-04","vix":10.82,"realized_vol_forecast":9.68},{"date":"2025-12-05","vix":10.32,"realized_vol_forecast":9.28},{"date":"2025-12-08","vix":11.13,"realized_vol_forecast":7.6},{"date":"2025-12-09","vix":10.95,"realized_vol_forecast":7.18},{"date":"2025-12-10","vix":10.91,"realized_vol_forecast":6.94},{"date":"2025-12-11","vix":10.4,"realized_vol_forecast":6.36},{"date":"2025-12-12","vix":10.11,"realized_vol_forecast":6.83},{"date":"2025-12-15","vix":10.25,"realized_vol_forecast":8.08},{"date":"2025-12-16","vix":10.06,"realized_vol_forecast":7.24},{"date":"2025-12-17","vix":9.84,"realized_vol_forecast":7.46},{"date":"2025-12-18","vix":9.71,"realized_vol_forecast":8.15},{"date":"2025-12-19","vix":9.52,"realized_vol_forecast":8.18},{"date":"2025-12-22","vix":9.68,"realized_vol_forecast":6.61},{"date":"2025-12-23","vix":9.38,"realized_vol_forecast":7.62},{"date":"2025-12-24","vix":9.19,"realized_vol_forecast":7.8},{"date":"2025-12-26","vix":9.15,"realized_vol_forecast":7.4},{"date":"2025-12-29","vix":9.72,"realized_vol_forecast":9.88},{"date":"2025-12-30","vix":9.68,"realized_vol_forecast":10.46},{"date":"2025-12-31","vix":9.48,"realized_vol_forecast":9.27},{"date":"2026-01-01","vix":9.19,"realized_vol_forecast":8.99},{"date":"2026-01-02","vix":9.45,"realized_vol_forecast":8.24},{"date":"2026-01-05","vix":10.02,"realized_vol_forecast":8.26},{"date":"2026-01-06","vix":10.02,"realized_vol_forecast":8.01},{"date":"2026-01-07","vix":9.95,"realized_vol_forecast":9.23},{"date":"2026-01-08","vix":10.6,"realized_vol_forecast":6.88},{"date":"2026-01-09","vix":10.93,"realized_vol_forecast":6.55},{"date":"2026-01-12","vix":11.37,"realized_vol_forecast":5.87},{"date":"2026-01-13","vix":11.2,"realized_vol_forecast":6.26},{"date":"2026-01-14","vix":11.32,"realized_vol_forecast":6.55},{"date":"2026-01-16","vix":11.37,"realized_vol_forecast":8.85},{"date":"2026-01-19","vix":11.83,"realized_vol_forecast":10.01},{"date":"2026-01-20","vix":12.73,"realized_vol_forecast":2.86},{"date":"2026-01-21","vix":13.78,"realized_vol_forecast":0.16},{"date":"2026-01-22","vix":13.35,"realized_vol_forecast":0.16},{"date":"2026-01-23","vix":14.19,"realized_vol_forecast":0.16},{"date":"2026-01-27","vix":14.45,"realized_vol_forecast":0.16},{"date":"2026-01-28","vix":13.53,"realized_vol_forecast":5.04},{"date":"2026-01-29","vix":13.37,"realized_vol_forecast":5.15},{"date":"2026-01-30","vix":13.63,"realized_vol_forecast":5.46},{"date":"2026-02-02","vix":13.87,"realized_vol_forecast":6.44},{"date":"2026-02-03","vix":12.9,"realized_vol_forecast":26.84},{"date":"2026-02-04","vix":12.25,"realized_vol_forecast":16.29},{"date":"2026-02-05","vix":12.17,"realized_vol_forecast":10.46},{"date":"2026-02-06","vix":11.94,"realized_vol_forecast":8.67},{"date":"2026-02-09","vix":12.19,"realized_vol_forecast":12.16},{"date":"2026-02-10","vix":11.67,"realized_vol_forecast":25.48},{"date":"2026-02-11","vix":11.55,"realized_vol_forecast":15.67},{"date":"2026-02-12","vix":11.73,"realized_vol_forecast":13.86},{"date":"2026-02-13","vix":13.29,"realized_vol_forecast":15.61},{"date":"2026-02-16","vix":13.33,"realized_vol_forecast":14.87},{"date":"2026-02-17","vix":12.67,"realized_vol_forecast":13.38},{"date":"2026-02-18","vix":12.22,"realized_vol_forecast":12.55},{"date":"2026-02-19","vix":13.46,"realized_vol_forecast":14.3},{"date":"2026-02-20","vix":14.36,"realized_vol_forecast":13.58},{"date":"2026-02-23","vix":14.17,"realized_vol_forecast":13.7},{"date":"2026-02-24","vix":14.15,"realized_vol_forecast":13.74},{"date":"2026-02-25","vix":13.49,"realized_vol_forecast":12.45},{"date":"2026-02-26","vix":13.06,"realized_vol_forecast":13.93},{"date":"2026-02-27","vix":13.7,"realized_vol_forecast":14.19},{"date":"2026-03-02","vix":17.13,"realized_vol_forecast":14.26},{"date":"2026-03-04","vix":21.14,"realized_vol_forecast":16.09},{"date":"2026-03-05","vix":17.86,"realized_vol_forecast":14.65},{"date":"2026-03-06","vix":19.88,"realized_vol_forecast":9.5},{"date":"2026-03-09","vix":23.36,"realized_vol_forecast":15.68},{"date":"2026-03-10","vix":18.91,"realized_vol_forecast":15.44},{"date":"2026-03-11","vix":21.06,"realized_vol_forecast":18.93},{"date":"2026-03-12","vix":21.52,"realized_vol_forecast":18.75},{"date":"2026-03-13","vix":22.65,"realized_vol_forecast":22.09},{"date":"2026-03-16","vix":21.6,"realized_vol_forecast":23.22},{"date":"2026-03-17","vix":19.79,"realized_vol_forecast":22.2},{"date":"2026-03-18","vix":18.72,"realized_vol_forecast":20.73},{"date":"2026-03-19","vix":22.8,"realized_vol_forecast":22.75},{"date":"2026-03-20","vix":22.81,"realized_vol_forecast":31.97},{"date":"2026-03-23","vix":26.73,"realized_vol_forecast":28.86},{"date":"2026-03-24","vix":24.74,"realized_vol_forecast":34.38},{"date":"2026-03-25","vix":24.64,"realized_vol_forecast":33.78},{"date":"2026-03-27","vix":26.8,"realized_vol_forecast":35.83},{"date":"2026-03-30","vix":27.89,"realized_vol_forecast":36.11},{"date":"2026-04-01","vix":25.01,"realized_vol_forecast":38.87},{"date":"2026-04-02","vix":25.52,"realized_vol_forecast":35.65},{"date":"2026-04-06","vix":25.47,"realized_vol_forecast":29.76},{"date":"2026-04-07","vix":24.7,"realized_vol_forecast":24.15},{"date":"2026-04-08","vix":19.7,"realized_vol_forecast":31.26},{"date":"2026-04-09","vix":20.43,"realized_vol_forecast":39.0},{"date":"2026-04-10","vix":18.85,"realized_vol_forecast":35.62},{"date":"2026-04-13","vix":20.5,"realized_vol_forecast":33.33},{"date":"2026-04-15","vix":18.67,"realized_vol_forecast":31.67},{"date":"2026-04-16","vix":18.09,"realized_vol_forecast":30.38},{"date":"2026-04-17","vix":17.21,"realized_vol_forecast":25.79},{"date":"2026-04-20","vix":18.79,"realized_vol_forecast":21.82},{"date":"2026-04-21","vix":17.53,"realized_vol_forecast":19.72},{"date":"2026-04-22","vix":18.3,"realized_vol_forecast":17.21},{"date":"2026-04-23","vix":18.59,"realized_vol_forecast":17.26},{"date":"2026-04-24","vix":19.71,"realized_vol_forecast":16.53},{"date":"2026-04-27","vix":18.38,"realized_vol_forecast":17.87},{"date":"2026-04-28","vix":18.05,"realized_vol_forecast":16.97},{"date":"2026-04-29","vix":17.44,"realized_vol_forecast":15.92},{"date":"2026-04-30","vix":18.46,"realized_vol_forecast":15.47},{"date":"2026-05-04","vix":18.3,"realized_vol_forecast":14.17},{"date":"2026-05-05","vix":17.91,"realized_vol_forecast":13.18},{"date":"2026-05-06","vix":16.68,"realized_vol_forecast":12.67},{"date":"2026-05-07","vix":16.62,"realized_vol_forecast":14.46},{"date":"2026-05-08","vix":16.84,"realized_vol_forecast":13.44},{"date":"2026-05-11","vix":18.55,"realized_vol_forecast":13.21},{"date":"2026-05-12","vix":19.28,"realized_vol_forecast":15.0},{"date":"2026-05-13","vix":19.43,"realized_vol_forecast":17.89},{"date":"2026-05-14","vix":18.61,"realized_vol_forecast":17.51},{"date":"2026-05-15","vix":18.79,"realized_vol_forecast":18.71},{"date":"2026-05-18","vix":19.63,"realized_vol_forecast":16.23},{"date":"2026-05-19","vix":18.68,"realized_vol_forecast":12.19},{"date":"2026-05-20","vix":18.44,"realized_vol_forecast":12.08},{"date":"2026-05-21","vix":17.82,"realized_vol_forecast":10.02},{"date":"2026-05-22","vix":17.91,"realized_vol_forecast":9.78},{"date":"2026-05-25","vix":16.7,"realized_vol_forecast":9.46},{"date":"2026-05-26","vix":16.13,"realized_vol_forecast":12.53},{"date":"2026-05-27","vix":14.98,"realized_vol_forecast":12.7},{"date":"2026-05-29","vix":16.19,"realized_vol_forecast":12.09},{"date":"2026-06-01","vix":16.54,"realized_vol_forecast":15.41},{"date":"2026-06-02","vix":15.36,"realized_vol_forecast":14.09},{"date":"2026-06-03","vix":16.28,"realized_vol_forecast":13.96},{"date":"2026-06-04","vix":15.89,"realized_vol_forecast":14.05},{"date":"2026-06-05","vix":15.79,"realized_vol_forecast":11.02},{"date":"2026-06-08","vix":17.03,"realized_vol_forecast":9.87},{"date":"2026-06-09","vix":15.58,"realized_vol_forecast":11.62},{"date":"2026-06-10","vix":15.63,"realized_vol_forecast":11.84},{"date":"2026-06-11","vix":15.61,"realized_vol_forecast":11.53},{"date":"2026-06-12","vix":14.72,"realized_vol_forecast":10.11},{"date":"2026-06-15","vix":14.35,"realized_vol_forecast":14.98},{"date":"2026-06-16","vix":13.36,"realized_vol_forecast":15.73},{"date":"2026-06-17","vix":13.19,"realized_vol_forecast":16.01},{"date":"2026-06-18","vix":12.67,"realized_vol_forecast":16.05},{"date":"2026-06-19","vix":12.97,"realized_vol_forecast":11.81},{"date":"2026-06-22","vix":12.84,"realized_vol_forecast":11.19},{"date":"2026-06-23","vix":13.94,"realized_vol_forecast":10.74},{"date":"2026-06-24","vix":13.39,"realized_vol_forecast":12.63},{"date":"2026-06-25","vix":13.05,"realized_vol_forecast":13.26},{"date":"2026-06-29","vix":13.61,"realized_vol_forecast":12.71},{"date":"2026-06-30","vix":13.6,"realized_vol_forecast":12.8},{"date":"2026-07-01","vix":13.24,"realized_vol_forecast":10.86},{"date":"2026-07-02","vix":12.29,"realized_vol_forecast":10.32},{"date":"2026-07-03","vix":11.8,"realized_vol_forecast":11.09},{"date":"2026-07-06","vix":11.82,"realized_vol_forecast":10.96},{"date":"2026-07-07","vix":11.65,"realized_vol_forecast":11.5},{"date":"2026-07-08","vix":14.68,"realized_vol_forecast":10.1},{"date":"2026-07-09","vix":13.36,"realized_vol_forecast":16.21},{"date":"2026-07-10","vix":12.25,"realized_vol_forecast":15.97},{"date":"2026-07-13","vix":13.28,"realized_vol_forecast":16.75},{"date":"2026-07-14","vix":13.75,"realized_vol_forecast":16.59},{"date":"2026-07-15","vix":13.27,"realized_vol_forecast":11.97},{"date":"2026-07-16","vix":12.88,"realized_vol_forecast":11.67},{"date":"2026-07-17","vix":13.15,"realized_vol_forecast":9.98},{"date":"2026-07-20","vix":12.98,"realized_vol_forecast":11.93},{"date":"2026-07-21","vix":12.6,"realized_vol_forecast":11.59},{"date":"2026-07-22","vix":13.29,"realized_vol_forecast":11.43},{"date":"2026-07-23","vix":13.48,"realized_vol_forecast":12.35},{"date":"2026-07-24","vix":14.03,"realized_vol_forecast":11.09},{"date":"2026-07-27","vix":12.66,"realized_vol_forecast":10.88},{"date":"2026-07-28","vix":12.56,"realized_vol_forecast":12.31},{"date":"2026-07-29","vix":12.01,"realized_vol_forecast":11.22},{"date":"2026-07-30","vix":12.16,"realized_vol_forecast":12.78},{"date":"2026-07-31","vix":11.76,"realized_vol_forecast":12.59},{"date":"2026-08-03","vix":11.93,"realized_vol_forecast":10.88},{"date":"2026-08-04","vix":12.19,"realized_vol_forecast":14.64},{"date":"2026-08-05","vix":12.06,"realized_vol_forecast":13.89},{"date":"2026-08-06","vix":12.16,"realized_vol_forecast":13.77},{"date":"2026-08-07","vix":12.16,"realized_vol_forecast":13.06},{"date":"2026-08-10","vix":12.25,"realized_vol_forecast":9.95},{"date":"2026-08-11","vix":11.86,"realized_vol_forecast":9.05},{"date":"2026-08-12","vix":11.69,"realized_vol_forecast":9.45},{"date":"2026-08-13","vix":11.42,"realized_vol_forecast":9.37},{"date":"2026-08-14","vix":11.31,"realized_vol_forecast":9.28},{"date":"2026-08-17","vix":11.33,"realized_vol_forecast":9.25},{"date":"2026-08-18","vix":11.39,"realized_vol_forecast":8.81},{"date":"2026-08-19","vix":11.32,"realized_vol_forecast":9.33},{"date":"2026-08-20","vix":10.76,"realized_vol_forecast":9.37},{"date":"2026-08-21","vix":11.2,"realized_vol_forecast":10.0},{"date":"2026-08-24","vix":11.53,"realized_vol_forecast":9.78},{"date":"2026-08-25","vix":11.08,"realized_vol_forecast":9.24},{"date":"2026-08-26","vix":10.57,"realized_vol_forecast":9.3},{"date":"2026-08-27","vix":11.07,"realized_vol_forecast":9.14},{"date":"2026-08-28","vix":10.68,"realized_vol_forecast":9.34},{"date":"2026-08-31","vix":11.19,"realized_vol_forecast":9.48},{"date":"2026-09-01","vix":11.49,"realized_vol_forecast":9.4},{"date":"2026-09-02","vix":11.59,"realized_vol_forecast":8.38},{"date":"2026-09-03","vix":11.34,"realized_vol_forecast":8.63},{"date":"2026-09-04","vix":10.68,"realized_vol_forecast":8.45},{"date":"2026-09-07","vix":11.16,"realized_vol_forecast":8.12},{"date":"2026-09-08","vix":11.23,"realized_vol_forecast":8.54},{"date":"2026-09-09","vix":11.92,"realized_vol_forecast":8.58},{"date":"2026-09-10","vix":11.8,"realized_vol_forecast":10.0},{"date":"2026-09-11","vix":12.29,"realized_vol_forecast":10.0},{"date":"2026-09-15","vix":13.43,"realized_vol_forecast":9.53},{"date":"2026-09-16","vix":13.17,"realized_vol_forecast":11.58}],"pcr_series":[{"date":"2025-08-13","pcr":1.084},{"date":"2025-08-14","pcr":0.879},{"date":"2025-08-18","pcr":0.874},{"date":"2025-08-19","pcr":1.113},{"date":"2025-08-20","pcr":1.348},{"date":"2025-08-21","pcr":1.004},{"date":"2025-08-22","pcr":0.61},{"date":"2025-08-25","pcr":0.773},{"date":"2025-08-26","pcr":0.567},{"date":"2025-08-28","pcr":0.644},{"date":"2025-08-29","pcr":0.541},{"date":"2025-09-01","pcr":1.15},{"date":"2025-09-02","pcr":0.813},{"date":"2025-09-03","pcr":1.245},{"date":"2025-09-04","pcr":0.732},{"date":"2025-09-05","pcr":0.756},{"date":"2025-09-08","pcr":0.868},{"date":"2025-09-09","pcr":0.932},{"date":"2025-09-10","pcr":1.108},{"date":"2025-09-11","pcr":1.157},{"date":"2025-09-12","pcr":1.331},{"date":"2025-09-15","pcr":1.049},{"date":"2025-09-16","pcr":1.31},{"date":"2025-09-17","pcr":1.167},{"date":"2025-09-18","pcr":1.094},{"date":"2025-09-19","pcr":0.817},{"date":"2025-09-22","pcr":0.572},{"date":"2025-09-23","pcr":0.854},{"date":"2025-09-24","pcr":0.769},{"date":"2025-09-25","pcr":0.571},{"date":"2025-09-26","pcr":0.524},{"date":"2025-09-29","pcr":0.613},{"date":"2025-09-30","pcr":0.724},{"date":"2025-10-01","pcr":1.242},{"date":"2025-10-03","pcr":1.207},{"date":"2025-10-06","pcr":1.513},{"date":"2025-10-07","pcr":0.914},{"date":"2025-10-08","pcr":0.622},{"date":"2025-10-09","pcr":1.005},{"date":"2025-10-10","pcr":1.399},{"date":"2025-10-13","pcr":1.031},{"date":"2025-10-14","pcr":0.688},{"date":"2025-10-15","pcr":1.241},{"date":"2025-10-16","pcr":1.527},{"date":"2025-10-17","pcr":1.23},{"date":"2025-10-20","pcr":1.036},{"date":"2025-10-21","pcr":0.971},{"date":"2025-10-23","pcr":0.859},{"date":"2025-10-24","pcr":0.657},{"date":"2025-10-27","pcr":1.06},{"date":"2025-10-28","pcr":0.782},{"date":"2025-10-29","pcr":1.057},{"date":"2025-10-30","pcr":0.599},{"date":"2025-10-31","pcr":0.501},{"date":"2025-11-03","pcr":0.664},{"date":"2025-11-04","pcr":0.733},{"date":"2025-11-06","pcr":0.627},{"date":"2025-11-07","pcr":0.884},{"date":"2025-11-10","pcr":0.969},{"date":"2025-11-11","pcr":1.04},{"date":"2025-11-12","pcr":1.308},{"date":"2025-11-13","pcr":1.057},{"date":"2025-11-14","pcr":0.81},{"date":"2025-11-17","pcr":1.132},{"date":"2025-11-18","pcr":0.91},{"date":"2025-11-19","pcr":1.281},{"date":"2025-11-20","pcr":1.518},{"date":"2025-11-21","pcr":0.963},{"date":"2025-11-24","pcr":0.65},{"date":"2025-11-25","pcr":0.733},{"date":"2025-11-26","pcr":1.553},{"date":"2025-11-27","pcr":1.137},{"date":"2025-11-28","pcr":1.123},{"date":"2025-12-01","pcr":0.761},{"date":"2025-12-02","pcr":0.725},{"date":"2025-12-03","pcr":0.691},{"date":"2025-12-04","pcr":0.807},{"date":"2025-12-05","pcr":1.239},{"date":"2025-12-08","pcr":0.48},{"date":"2025-12-09","pcr":0.668},{"date":"2025-12-10","pcr":0.544},{"date":"2025-12-11","pcr":0.844},{"date":"2025-12-12","pcr":1.169},{"date":"2025-12-15","pcr":1.236},{"date":"2025-12-16","pcr":0.676},{"date":"2025-12-17","pcr":0.585},{"date":"2025-12-18","pcr":0.677},{"date":"2025-12-19","pcr":1.126},{"date":"2025-12-22","pcr":1.64},{"date":"2025-12-23","pcr":1.084},{"date":"2025-12-24","pcr":0.913},{"date":"2025-12-26","pcr":0.662},{"date":"2025-12-29","pcr":0.565},{"date":"2025-12-30","pcr":0.755},{"date":"2025-12-31","pcr":1.354},{"date":"2026-01-01","pcr":1.122},{"date":"2026-01-02","pcr":1.668},{"date":"2026-01-05","pcr":0.966},{"date":"2026-01-06","pcr":0.735},{"date":"2026-01-07","pcr":0.742},{"date":"2026-01-08","pcr":0.505},{"date":"2026-01-09","pcr":0.491},{"date":"2026-01-12","pcr":0.872},{"date":"2026-01-13","pcr":0.661},{"date":"2026-01-14","pcr":0.68},{"date":"2026-01-16","pcr":0.651},{"date":"2026-01-19","pcr":0.714},{"date":"2026-01-20","pcr":0.583},{"date":"2026-01-21","pcr":0.674},{"date":"2026-01-22","pcr":0.784},{"date":"2026-01-23","pcr":0.59},{"date":"2026-01-27","pcr":0.834},{"date":"2026-01-28","pcr":0.826},{"date":"2026-01-29","pcr":0.972},{"date":"2026-01-30","pcr":0.762},{"date":"2026-02-02","pcr":0.931},{"date":"2026-02-03","pcr":0.845},{"date":"2026-02-04","pcr":0.959},{"date":"2026-02-05","pcr":0.649},{"date":"2026-02-06","pcr":0.858},{"date":"2026-02-09","pcr":1.058},{"date":"2026-02-10","pcr":1.026},{"date":"2026-02-11","pcr":0.891},{"date":"2026-02-12","pcr":0.611},{"date":"2026-02-13","pcr":0.454},{"date":"2026-02-16","pcr":1.079},{"date":"2026-02-17","pcr":0.973},{"date":"2026-02-18","pcr":1.139},{"date":"2026-02-19","pcr":0.559},{"date":"2026-02-20","pcr":0.872},{"date":"2026-02-23","pcr":0.976},{"date":"2026-02-24","pcr":0.601},{"date":"2026-02-25","pcr":0.654},{"date":"2026-02-26","pcr":0.692},{"date":"2026-02-27","pcr":0.456},{"date":"2026-03-02","pcr":0.739},{"date":"2026-03-04","pcr":0.776},{"date":"2026-03-05","pcr":0.917},{"date":"2026-03-06","pcr":0.677},{"date":"2026-03-09","pcr":1.003},{"date":"2026-03-10","pcr":0.885},{"date":"2026-03-11","pcr":0.613},{"date":"2026-03-12","pcr":0.697},{"date":"2026-03-13","pcr":0.578},{"date":"2026-03-16","pcr":1.019},{"date":"2026-03-17","pcr":0.984},{"date":"2026-03-18","pcr":1.06},{"date":"2026-03-19","pcr":0.71},{"date":"2026-03-20","pcr":0.788},{"date":"2026-03-23","pcr":0.698},{"date":"2026-03-24","pcr":1.051},{"date":"2026-03-25","pcr":1.243},{"date":"2026-03-27","pcr":0.881},{"date":"2026-03-30","pcr":0.767},{"date":"2026-04-01","pcr":0.836},{"date":"2026-04-02","pcr":1.167},{"date":"2026-04-06","pcr":1.428},{"date":"2026-04-07","pcr":1.27},{"date":"2026-04-08","pcr":1.196},{"date":"2026-04-09","pcr":0.921},{"date":"2026-04-10","pcr":1.171},{"date":"2026-04-13","pcr":1.1},{"date":"2026-04-15","pcr":1.114},{"date":"2026-04-16","pcr":0.866},{"date":"2026-04-17","pcr":1.018},{"date":"2026-04-20","pcr":1.103},{"date":"2026-04-21","pcr":1.168},{"date":"2026-04-22","pcr":0.949},{"date":"2026-04-23","pcr":0.833},{"date":"2026-04-24","pcr":0.679},{"date":"2026-04-27","pcr":0.971},{"date":"2026-04-28","pcr":0.788},{"date":"2026-04-29","pcr":0.932},{"date":"2026-04-30","pcr":0.872},{"date":"2026-05-04","pcr":0.623},{"date":"2026-05-05","pcr":0.953},{"date":"2026-05-06","pcr":1.183},{"date":"2026-05-07","pcr":1.008},{"date":"2026-05-08","pcr":0.795},{"date":"2026-05-11","pcr":0.571},{"date":"2026-05-12","pcr":0.715},{"date":"2026-05-13","pcr":0.807},{"date":"2026-05-14","pcr":1.226},{"date":"2026-05-15","pcr":0.928},{"date":"2026-05-18","pcr":1.344},{"date":"2026-05-19","pcr":1.032},{"date":"2026-05-20","pcr":1.267},{"date":"2026-05-21","pcr":0.939},{"date":"2026-05-22","pcr":1.023},{"date":"2026-05-25","pcr":1.299},{"date":"2026-05-26","pcr":0.927},{"date":"2026-05-27","pcr":0.857},{"date":"2026-05-29","pcr":0.527},{"date":"2026-06-01","pcr":0.491},{"date":"2026-06-02","pcr":0.952},{"date":"2026-06-03","pcr":0.983},{"date":"2026-06-04","pcr":0.964},{"date":"2026-06-05","pcr":0.699},{"date":"2026-06-08","pcr":0.639},{"date":"2026-06-09","pcr":1.063},{"date":"2026-06-10","pcr":0.819},{"date":"2026-06-11","pcr":0.919},{"date":"2026-06-12","pcr":1.74},{"date":"2026-06-15","pcr":0.946},{"date":"2026-06-16","pcr":1.029},{"date":"2026-06-17","pcr":1.072},{"date":"2026-06-18","pcr":1.115},{"date":"2026-06-19","pcr":0.776},{"date":"2026-06-22","pcr":0.872},{"date":"2026-06-23","pcr":0.781},{"date":"2026-06-24","pcr":1.209},{"date":"2026-06-25","pcr":1.025},{"date":"2026-06-29","pcr":0.773},{"date":"2026-06-30","pcr":0.887},{"date":"2026-07-01","pcr":1.105},{"date":"2026-07-02","pcr":1.335},{"date":"2026-07-03","pcr":0.997},{"date":"2026-07-06","pcr":1.497},{"date":"2026-07-07","pcr":0.902},{"date":"2026-07-08","pcr":0.605},{"date":"2026-07-09","pcr":0.799},{"date":"2026-07-10","pcr":1.273},{"date":"2026-07-13","pcr":1.616},{"date":"2026-07-14","pcr":0.859},{"date":"2026-07-15","pcr":0.776},{"date":"2026-07-16","pcr":0.828},{"date":"2026-07-17","pcr":1.613},{"date":"2026-07-20","pcr":1.378},{"date":"2026-07-21","pcr":0.912},{"date":"2026-07-22","pcr":0.733},{"date":"2026-07-23","pcr":0.679},{"date":"2026-07-24","pcr":0.825},{"date":"2026-07-27","pcr":1.12},{"date":"2026-07-28","pcr":0.926},{"date":"2026-07-29","pcr":1.167},{"date":"2026-07-30","pcr":1.294},{"date":"2026-07-31","pcr":1.494},{"date":"2026-08-03","pcr":1.572},{"date":"2026-08-04","pcr":0.815},{"date":"2026-08-05","pcr":0.717},{"date":"2026-08-06","pcr":0.92},{"date":"2026-08-07","pcr":0.734},{"date":"2026-08-10","pcr":0.848},{"date":"2026-08-11","pcr":0.853},{"date":"2026-08-12","pcr":0.754},{"date":"2026-08-13","pcr":0.776},{"date":"2026-08-14","pcr":0.884},{"date":"2026-08-17","pcr":0.916},{"date":"2026-08-18","pcr":0.815},{"date":"2026-08-19","pcr":0.702},{"date":"2026-08-20","pcr":1.097},{"date":"2026-08-21","pcr":1.078},{"date":"2026-08-24","pcr":0.695},{"date":"2026-08-25","pcr":1.159},{"date":"2026-08-26","pcr":0.733},{"date":"2026-08-27","pcr":0.593},{"date":"2026-08-28","pcr":0.776},{"date":"2026-08-31","pcr":0.804},{"date":"2026-09-01","pcr":0.692},{"date":"2026-09-02","pcr":0.729},{"date":"2026-09-03","pcr":0.656},{"date":"2026-09-04","pcr":0.844},{"date":"2026-09-07","pcr":0.556},{"date":"2026-09-08","pcr":0.649},{"date":"2026-09-09","pcr":0.591},{"date":"2026-09-10","pcr":0.64},{"date":"2026-09-11","pcr":1.057},{"date":"2026-09-15","pcr":0.657},{"date":"2026-09-16","pcr":0.938}],"max_pain_vs_spot":[{"date":"2025-08-13","max_pain":24600.0,"spot":24619.35},{"date":"2025-08-14","max_pain":24650.0,"spot":24631.3},{"date":"2025-08-18","max_pain":24900.0,"spot":24876.95},{"date":"2025-08-19","max_pain":25000.0,"spot":24980.65},{"date":"2025-08-20","max_pain":25000.0,"spot":25050.55},{"date":"2025-08-21","max_pain":25050.0,"spot":25083.75},{"date":"2025-08-22","max_pain":24950.0,"spot":24870.1},{"date":"2025-08-25","max_pain":25000.0,"spot":24967.75},{"date":"2025-08-26","max_pain":24800.0,"spot":24712.05},{"date":"2025-08-28","max_pain":24600.0,"spot":24500.9},{"date":"2025-08-29","max_pain":24500.0,"spot":24426.85},{"date":"2025-09-01","max_pain":24600.0,"spot":24625.05},{"date":"2025-09-02","max_pain":24650.0,"spot":24579.6},{"date":"2025-09-03","max_pain":24700.0,"spot":24715.05},{"date":"2025-09-04","max_pain":24750.0,"spot":24734.3},{"date":"2025-09-05","max_pain":24750.0,"spot":24741.0},{"date":"2025-09-08","max_pain":24800.0,"spot":24773.15},{"date":"2025-09-09","max_pain":24850.0,"spot":24868.6},{"date":"2025-09-10","max_pain":25000.0,"spot":24973.1},{"date":"2025-09-11","max_pain":25000.0,"spot":25005.5},{"date":"2025-09-12","max_pain":25100.0,"spot":25114.0},{"date":"2025-09-15","max_pain":25100.0,"spot":25069.2},{"date":"2025-09-16","max_pain":25200.0,"spot":25239.1},{"date":"2025-09-17","max_pain":25300.0,"spot":25330.25},{"date":"2025-09-18","max_pain":25400.0,"spot":25423.6},{"date":"2025-09-19","max_pain":25350.0,"spot":25327.05},{"date":"2025-09-22","max_pain":25250.0,"spot":25202.35},{"date":"2025-09-23","max_pain":25200.0,"spot":25169.5},{"date":"2025-09-24","max_pain":25100.0,"spot":25056.9},{"date":"2025-09-25","max_pain":25000.0,"spot":24890.85},{"date":"2025-09-26","max_pain":24800.0,"spot":24654.7},{"date":"2025-09-29","max_pain":24750.0,"spot":24634.9},{"date":"2025-09-30","max_pain":24700.0,"spot":24611.1},{"date":"2025-10-01","max_pain":24800.0,"spot":24836.3},{"date":"2025-10-03","max_pain":24900.0,"spot":24894.25},{"date":"2025-10-06","max_pain":25050.0,"spot":25077.65},{"date":"2025-10-07","max_pain":25100.0,"spot":25108.3},{"date":"2025-10-08","max_pain":25100.0,"spot":25046.15},{"date":"2025-10-09","max_pain":25150.0,"spot":25181.8},{"date":"2025-10-10","max_pain":25300.0,"spot":25285.35},{"date":"2025-10-13","max_pain":25200.0,"spot":25227.35},{"date":"2025-10-14","max_pain":25200.0,"spot":25145.5},{"date":"2025-10-15","max_pain":25300.0,"spot":25323.55},{"date":"2025-10-16","max_pain":25500.0,"spot":25585.3},{"date":"2025-10-17","max_pain":25650.0,"spot":25709.85},{"date":"2025-10-20","max_pain":25650.0,"spot":25843.15},{"date":"2025-10-21","max_pain":25700.0,"spot":25868.6},{"date":"2025-10-23","max_pain":25850.0,"spot":25891.4},{"date":"2025-10-24","max_pain":25800.0,"spot":25795.15},{"date":"2025-10-27","max_pain":25950.0,"spot":25966.05},{"date":"2025-10-28","max_pain":25950.0,"spot":25936.2},{"date":"2025-10-29","max_pain":26000.0,"spot":26053.9},{"date":"2025-10-30","max_pain":25950.0,"spot":25877.85},{"date":"2025-10-31","max_pain":25800.0,"spot":25722.1},{"date":"2025-11-03","max_pain":25800.0,"spot":25763.35},{"date":"2025-11-04","max_pain":25700.0,"spot":25597.65},{"date":"2025-11-06","max_pain":25600.0,"spot":25509.7},{"date":"2025-11-07","max_pain":25500.0,"spot":25492.3},{"date":"2025-11-10","max_pain":25600.0,"spot":25574.35},{"date":"2025-11-11","max_pain":25700.0,"spot":25694.95},{"date":"2025-11-12","max_pain":25850.0,"spot":25875.8},{"date":"2025-11-13","max_pain":25900.0,"spot":25879.15},{"date":"2025-11-14","max_pain":25850.0,"spot":25910.05},{"date":"2025-11-17","max_pain":26000.0,"spot":26013.45},{"date":"2025-11-18","max_pain":25950.0,"spot":25910.05},{"date":"2025-11-19","max_pain":26000.0,"spot":26052.65},{"date":"2025-11-20","max_pain":26100.0,"spot":26192.15},{"date":"2025-11-21","max_pain":26050.0,"spot":26068.15},{"date":"2025-11-24","max_pain":26000.0,"spot":25959.5},{"date":"2025-11-25","max_pain":26000.0,"spot":25884.8},{"date":"2025-11-26","max_pain":26150.0,"spot":26205.3},{"date":"2025-11-27","max_pain":26200.0,"spot":26215.55},{"date":"2025-11-28","max_pain":26200.0,"spot":26202.95},{"date":"2025-12-01","max_pain":26200.0,"spot":26175.75},{"date":"2025-12-02","max_pain":26100.0,"spot":26032.2},{"date":"2025-12-03","max_pain":26000.0,"spot":25986.0},{"date":"2025-12-04","max_pain":26000.0,"spot":26033.75},{"date":"2025-12-05","max_pain":26150.0,"spot":26186.45},{"date":"2025-12-08","max_pain":26000.0,"spot":25960.55},{"date":"2025-12-09","max_pain":25900.0,"spot":25839.65},{"date":"2025-12-10","max_pain":25850.0,"spot":25758.0},{"date":"2025-12-11","max_pain":25900.0,"spot":25898.55},{"date":"2025-12-12","max_pain":26000.0,"spot":26046.95},{"date":"2025-12-15","max_pain":26000.0,"spot":26027.3},{"date":"2025-12-16","max_pain":25900.0,"spot":25860.1},{"date":"2025-12-17","max_pain":25850.0,"spot":25818.55},{"date":"2025-12-18","max_pain":25850.0,"spot":25815.55},{"date":"2025-12-19","max_pain":25950.0,"spot":25966.4},{"date":"2025-12-22","max_pain":26150.0,"spot":26172.4},{"date":"2025-12-23","max_pain":26100.0,"spot":26177.15},{"date":"2025-12-24","max_pain":26150.0,"spot":26142.1},{"date":"2025-12-26","max_pain":26050.0,"spot":26042.3},{"date":"2025-12-29","max_pain":26000.0,"spot":25942.1},{"date":"2025-12-30","max_pain":26000.0,"spot":25938.85},{"date":"2025-12-31","max_pain":26100.0,"spot":26129.6},{"date":"2026-01-01","max_pain":26150.0,"spot":26146.55},{"date":"2026-01-02","max_pain":26300.0,"spot":26328.55},{"date":"2026-01-05","max_pain":26250.0,"spot":26250.3},{"date":"2026-01-06","max_pain":26200.0,"spot":26178.7},{"date":"2026-01-07","max_pain":26150.0,"spot":26140.75},{"date":"2026-01-08","max_pain":26000.0,"spot":25876.85},{"date":"2026-01-09","max_pain":25800.0,"spot":25683.3},{"date":"2026-01-12","max_pain":25800.0,"spot":25790.25},{"date":"2026-01-13","max_pain":25800.0,"spot":25732.3},{"date":"2026-01-14","max_pain":25700.0,"spot":25665.6},{"date":"2026-01-16","max_pain":25750.0,"spot":25694.35},{"date":"2026-01-19","max_pain":25600.0,"spot":25585.5},{"date":"2026-01-20","max_pain":25500.0,"spot":25232.5},{"date":"2026-01-21","max_pain":25350.0,"spot":25157.5},{"date":"2026-01-22","max_pain":25400.0,"spot":25289.9},{"date":"2026-01-23","max_pain":25200.0,"spot":25048.65},{"date":"2026-01-27","max_pain":25200.0,"spot":25175.4},{"date":"2026-01-28","max_pain":25300.0,"spot":25342.75},{"date":"2026-01-29","max_pain":25350.0,"spot":25418.9},{"date":"2026-01-30","max_pain":25300.0,"spot":25320.65},{"date":"2026-02-02","max_pain":25050.0,"spot":25088.4},{"date":"2026-02-03","max_pain":25700.0,"spot":25727.55},{"date":"2026-02-04","max_pain":25750.0,"spot":25776.0},{"date":"2026-02-05","max_pain":25650.0,"spot":25642.8},{"date":"2026-02-06","max_pain":25650.0,"spot":25693.7},{"date":"2026-02-09","max_pain":25800.0,"spot":25867.3},{"date":"2026-02-10","max_pain":25900.0,"spot":25935.15},{"date":"2026-02-11","max_pain":25950.0,"spot":25953.85},{"date":"2026-02-12","max_pain":25850.0,"spot":25807.2},{"date":"2026-02-13","max_pain":25550.0,"spot":25471.1},{"date":"2026-02-16","max_pain":25650.0,"spot":25682.75},{"date":"2026-02-17","max_pain":25700.0,"spot":25725.4},{"date":"2026-02-18","max_pain":25750.0,"spot":25819.35},{"date":"2026-02-19","max_pain":25600.0,"spot":25454.35},{"date":"2026-02-20","max_pain":25600.0,"spot":25571.25},{"date":"2026-02-23","max_pain":25700.0,"spot":25713.0},{"date":"2026-02-24","max_pain":25500.0,"spot":25424.65},{"date":"2026-02-25","max_pain":25500.0,"spot":25482.5},{"date":"2026-02-26","max_pain":25500.0,"spot":25496.55},{"date":"2026-02-27","max_pain":25300.0,"spot":25178.65},{"date":"2026-03-02","max_pain":25000.0,"spot":24865.7},{"date":"2026-03-04","max_pain":24700.0,"spot":24480.5},{"date":"2026-03-05","max_pain":24750.0,"spot":24765.9},{"date":"2026-03-06","max_pain":24600.0,"spot":24450.45},{"date":"2026-03-09","max_pain":24100.0,"spot":24028.05},{"date":"2026-03-10","max_pain":24300.0,"spot":24261.6},{"date":"2026-03-11","max_pain":24100.0,"spot":23866.85},{"date":"2026-03-12","max_pain":23900.0,"spot":23639.15},{"date":"2026-03-13","max_pain":23500.0,"spot":23151.1},{"date":"2026-03-16","max_pain":23400.0,"spot":23408.8},{"date":"2026-03-17","max_pain":23600.0,"spot":23581.15},{"date":"2026-03-18","max_pain":23700.0,"spot":23777.8},{"date":"2026-03-19","max_pain":23300.0,"spot":23002.15},{"date":"2026-03-20","max_pain":23250.0,"spot":23114.5},{"date":"2026-03-23","max_pain":22750.0,"spot":22512.65},{"date":"2026-03-24","max_pain":23500.0,"spot":22912.4},{"date":"2026-03-25","max_pain":23500.0,"spot":23306.45},{"date":"2026-03-27","max_pain":23150.0,"spot":22819.6},{"date":"2026-03-30","max_pain":23000.0,"spot":22331.4},{"date":"2026-04-01","max_pain":23000.0,"spot":22679.4},{"date":"2026-04-02","max_pain":22800.0,"spot":22713.1},{"date":"2026-04-06","max_pain":23000.0,"spot":22968.25},{"date":"2026-04-07","max_pain":23000.0,"spot":23123.65},{"date":"2026-04-08","max_pain":23900.0,"spot":23997.35},{"date":"2026-04-09","max_pain":23800.0,"spot":23775.1},{"date":"2026-04-10","max_pain":23950.0,"spot":24050.6},{"date":"2026-04-13","max_pain":23800.0,"spot":23842.65},{"date":"2026-04-15","max_pain":24200.0,"spot":24231.3},{"date":"2026-04-16","max_pain":24200.0,"spot":24196.75},{"date":"2026-04-17","max_pain":24250.0,"spot":24353.55},{"date":"2026-04-20","max_pain":24300.0,"spot":24364.85},{"date":"2026-04-21","max_pain":24400.0,"spot":24576.6},{"date":"2026-04-22","max_pain":24400.0,"spot":24378.1},{"date":"2026-04-23","max_pain":24200.0,"spot":24173.05},{"date":"2026-04-24","max_pain":24000.0,"spot":23897.95},{"date":"2026-04-27","max_pain":24100.0,"spot":24092.7},{"date":"2026-04-28","max_pain":24100.0,"spot":23995.7},{"date":"2026-04-29","max_pain":24200.0,"spot":24177.65},{"date":"2026-04-30","max_pain":24050.0,"spot":23997.55},{"date":"2026-05-04","max_pain":24100.0,"spot":24119.3},{"date":"2026-05-05","max_pain":24050.0,"spot":24032.8},{"date":"2026-05-06","max_pain":24250.0,"spot":24330.95},{"date":"2026-05-07","max_pain":24300.0,"spot":24326.65},{"date":"2026-05-08","max_pain":24200.0,"spot":24176.15},{"date":"2026-05-11","max_pain":23900.0,"spot":23815.85},{"date":"2026-05-12","max_pain":23650.0,"spot":23379.55},{"date":"2026-05-13","max_pain":23500.0,"spot":23412.6},{"date":"2026-05-14","max_pain":23700.0,"spot":23689.6},{"date":"2026-05-15","max_pain":23700.0,"spot":23643.5},{"date":"2026-05-18","max_pain":23600.0,"spot":23649.95},{"date":"2026-05-19","max_pain":23850.0,"spot":23618.0},{"date":"2026-05-20","max_pain":23750.0,"spot":23659.0},{"date":"2026-05-21","max_pain":23700.0,"spot":23654.7},{"date":"2026-05-22","max_pain":23800.0,"spot":23719.3},{"date":"2026-05-25","max_pain":24000.0,"spot":24031.7},{"date":"2026-05-26","max_pain":24000.0,"spot":23913.7},{"date":"2026-05-27","max_pain":23950.0,"spot":23907.15},{"date":"2026-05-29","max_pain":23800.0,"spot":23547.75},{"date":"2026-06-01","max_pain":23500.0,"spot":23382.6},{"date":"2026-06-02","max_pain":23500.0,"spot":23483.55},{"date":"2026-06-03","max_pain":23500.0,"spot":23405.6},{"date":"2026-06-04","max_pain":23450.0,"spot":23416.55},{"date":"2026-06-05","max_pain":23450.0,"spot":23366.7},{"date":"2026-06-08","max_pain":23200.0,"spot":23123.0},{"date":"2026-06-09","max_pain":23300.0,"spot":23242.1},{"date":"2026-06-10","max_pain":23300.0,"spot":23214.95},{"date":"2026-06-11","max_pain":23200.0,"spot":23161.6},{"date":"2026-06-12","max_pain":23500.0,"spot":23622.9},{"date":"2026-06-15","max_pain":23800.0,"spot":23853.9},{"date":"2026-06-16","max_pain":23900.0,"spot":23989.15},{"date":"2026-06-17","max_pain":24000.0,"spot":24085.7},{"date":"2026-06-18","max_pain":24100.0,"spot":24168.0},{"date":"2026-06-19","max_pain":24000.0,"spot":24013.1},{"date":"2026-06-22","max_pain":24100.0,"spot":24102.9},{"date":"2026-06-23","max_pain":24000.0,"spot":23824.1},{"date":"2026-06-24","max_pain":24000.0,"spot":24021.65},{"date":"2026-06-25","max_pain":24100.0,"spot":24056.0},{"date":"2026-06-29","max_pain":24000.0,"spot":23946.25},{"date":"2026-06-30","max_pain":24000.0,"spot":23865.75},{"date":"2026-07-01","max_pain":24000.0,"spot":24005.85},{"date":"2026-07-02","max_pain":24100.0,"spot":24175.7},{"date":"2026-07-03","max_pain":24200.0,"spot":24270.85},{"date":"2026-07-06","max_pain":24400.0,"spot":24430.35},{"date":"2026-07-07","max_pain":24400.0,"spot":24398.7},{"date":"2026-07-08","max_pain":24100.0,"spot":23882.05},{"date":"2026-07-09","max_pain":24050.0,"spot":23962.8},{"date":"2026-07-10","max_pain":24200.0,"spot":24206.9},{"date":"2026-07-13","max_pain":24200.0,"spot":24211.0},{"date":"2026-07-14","max_pain":24100.0,"spot":24052.05},{"date":"2026-07-15","max_pain":24100.0,"spot":24078.5},{"date":"2026-07-16","max_pain":24100.0,"spot":24072.75},{"date":"2026-07-17","max_pain":24250.0,"spot":24334.3},{"date":"2026-07-20","max_pain":24200.0,"spot":24238.5},{"date":"2026-07-21","max_pain":24200.0,"spot":24187.7},{"date":"2026-07-22","max_pain":24100.0,"spot":23996.25},{"date":"2026-07-23","max_pain":24000.0,"spot":23869.6},{"date":"2026-07-24","max_pain":23900.0,"spot":23767.45},{"date":"2026-07-27","max_pain":24000.0,"spot":23995.95},{"date":"2026-07-28","max_pain":24000.0,"spot":23985.35},{"date":"2026-07-29","max_pain":24200.0,"spot":24250.2},{"date":"2026-07-30","max_pain":24250.0,"spot":24317.15},{"date":"2026-07-31","max_pain":24350.0,"spot":24383.6},{"date":"2026-08-03","max_pain":24550.0,"spot":24774.3},{"date":"2026-08-04","max_pain":24500.0,"spot":24614.9},{"date":"2026-08-05","max_pain":24550.0,"spot":24624.65},{"date":"2026-08-06","max_pain":24600.0,"spot":24636.0},{"date":"2026-08-07","max_pain":24600.0,"spot":24570.65},{"date":"2026-08-10","max_pain":24600.0,"spot":24583.8},{"date":"2026-08-11","max_pain":24500.0,"spot":24471.7},{"date":"2026-08-12","max_pain":24400.0,"spot":24435.95},{"date":"2026-08-13","max_pain":24400.0,"spot":24395.85},{"date":"2026-08-14","max_pain":24400.0,"spot":24366.0},{"date":"2026-08-17","max_pain":24350.0,"spot":24287.65},{"date":"2026-08-18","max_pain":24300.0,"spot":24154.9},{"date":"2026-08-19","max_pain":24200.0,"spot":24078.3},{"date":"2026-08-20","max_pain":24250.0,"spot":24231.85},{"date":"2026-08-21","max_pain":24250.0,"spot":24252.0},{"date":"2026-08-24","max_pain":24200.0,"spot":24219.05},{"date":"2026-08-25","max_pain":24300.0,"spot":24334.55},{"date":"2026-08-26","max_pain":24300.0,"spot":24207.75},{"date":"2026-08-27","max_pain":24200.0,"spot":24090.85},{"date":"2026-08-28","max_pain":24200.0,"spot":24175.65},{"date":"2026-08-31","max_pain":24100.0,"spot":24080.4},{"date":"2026-09-01","max_pain":24100.0,"spot":24055.8},{"date":"2026-09-02","max_pain":23950.0,"spot":23914.45},{"date":"2026-09-03","max_pain":23950.0,"spot":23873.45},{"date":"2026-09-04","max_pain":24000.0,"spot":23897.7},{"date":"2026-09-07","max_pain":23800.0,"spot":23779.15},{"date":"2026-09-08","max_pain":23750.0,"spot":23635.1},{"date":"2026-09-09","max_pain":23600.0,"spot":23431.5},{"date":"2026-09-10","max_pain":23500.0,"spot":23477.8},{"date":"2026-09-11","max_pain":23450.0,"spot":23398.1},{"date":"2026-09-15","max_pain":23350.0,"spot":23118.6},{"date":"2026-09-16","max_pain":23300.0,"spot":23217.6}],"avg_vix_minus_realized_vol":1.62,"latest_pcr":0.938,"latest_vix":13.17};
+
+if (CONTEXT.vix_vs_realized && CONTEXT.vix_vs_realized.length) {
+  new Chart(document.getElementById('vixChart'), {
+    type: 'line',
+    data: {
+      labels: CONTEXT.vix_vs_realized.map(r => r.date),
+      datasets: [
+        {
+          label: 'India VIX', data: CONTEXT.vix_vs_realized.map(r => r.vix),
+          borderColor: getComputedStyle(document.documentElement).getPropertyValue('--amber'),
+          backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, tension: 0.15,
+        },
+        {
+          label: 'realized-vol forecast', data: CONTEXT.vix_vs_realized.map(r => r.realized_vol_forecast),
+          borderColor: getComputedStyle(document.documentElement).getPropertyValue('--teal'),
+          backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, tension: 0.15,
+        },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { display: false },
+        y: { title: { display: true, text: 'annualized vol %' }, grid: { color: gridColor() } },
+      },
+    },
+  });
+
+  const vixStatsEl = document.getElementById('vixStats');
+  const gap = CONTEXT.avg_vix_minus_realized_vol;
+  vixStatsEl.innerHTML = `
+    <div class="stat"><div class="label">LATEST VIX</div><div class="value">${CONTEXT.latest_vix ?? '--'}</div></div>
+    <div class="stat"><div class="label">AVG VIX &minus; REALIZED</div><div class="value ${gap>=0?'pos':'neg'}">${gap!=null ? (gap>=0?'+':'')+gap : '--'}</div></div>
+    <div class="stat"><div class="label">DATA POINTS</div><div class="value">${CONTEXT.vix_vs_realized.length}</div></div>
+    <div class="stat"><div class="label">SOURCE</div><div class="value" style="font-size:12px;">NSE daily</div></div>
+  `;
+}
+
+if (CONTEXT.pcr_series && CONTEXT.pcr_series.length) {
+  new Chart(document.getElementById('pcrChart'), {
+    type: 'line',
+    data: {
+      labels: CONTEXT.pcr_series.map(r => r.date),
+      datasets: [
+        {
+          label: 'PCR', data: CONTEXT.pcr_series.map(r => r.pcr),
+          borderColor: getComputedStyle(document.documentElement).getPropertyValue('--teal'),
+          backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, tension: 0.15,
+        },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { display: false },
+        y: { title: { display: true, text: 'put OI / call OI' }, grid: { color: gridColor() } },
+      },
+    },
+  });
+
+  const pcrStatsEl = document.getElementById('pcrStats');
+  const latestMaxPain = CONTEXT.max_pain_vs_spot && CONTEXT.max_pain_vs_spot.length
+    ? CONTEXT.max_pain_vs_spot[CONTEXT.max_pain_vs_spot.length - 1] : null;
+  pcrStatsEl.innerHTML = `
+    <div class="stat"><div class="label">LATEST PCR</div><div class="value">${CONTEXT.latest_pcr ?? '--'}</div></div>
+    <div class="stat"><div class="label">LATEST MAX PAIN</div><div class="value">${latestMaxPain?.max_pain?.toFixed(0) ?? '--'}</div></div>
+    <div class="stat"><div class="label">LATEST SPOT</div><div class="value">${latestMaxPain?.spot?.toFixed(0) ?? '--'}</div></div>
+    <div class="stat"><div class="label">DATA POINTS</div><div class="value">${CONTEXT.pcr_series.length}</div></div>
+  `;
+}
+
+
+// ======================= GAMMA WALL =======================
+if (DATA.gamma_wall && DATA.gamma_wall.length) {
+  new Chart(document.getElementById('gammaWallChart'), {
+    type: 'bar',
+    data: {
+      labels: DATA.gamma_wall.map(g => g.strike.toFixed(0)),
+      datasets: [{
+        label: 'gamma exposure',
+        data: DATA.gamma_wall.map(g => g.gamma_exposure),
+        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--teal'),
+        borderRadius: 3,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false } },
+        y: { grid: { color: gridColor() }, title: { display: true, text: 'OI \u00d7 gamma (illustrative OI)' } },
+      },
+    },
+  });
+}
+
+// ======================= EXPIRY DECAY RING =======================
+if (DATA.expiry_decay && DATA.expiry_decay.length) {
+  new Chart(document.getElementById('expiryRingChart'), {
+    type: 'polarArea',
+    data: {
+      labels: DATA.expiry_decay.map(d => `${d.days_to_expiry}d to expiry`),
+      datasets: [{
+        data: DATA.expiry_decay.map(d => d.avg_abs_edge_pct),
+        backgroundColor: [
+          'rgba(79,209,197,0.75)', 'rgba(79,209,197,0.6)', 'rgba(242,166,90,0.6)',
+          'rgba(255,107,107,0.6)', 'rgba(255,107,107,0.8)',
+        ],
+        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--border'),
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } } },
+      scales: { r: { grid: { color: gridColor() }, ticks: { display: false } } },
+    },
+  });
+}
+
+// ======================= SIGNAL CASCADE =======================
+if (DATA.signal_cascade && DATA.signal_cascade.length) {
+  new Chart(document.getElementById('cascadeChart'), {
+    type: 'bar',
+    data: {
+      labels: DATA.signal_cascade.map(c => c.seq),
+      datasets: [
+        {
+          label: 'BUY_CALL', data: DATA.signal_cascade.map(c => c.buy),
+          backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--green'),
+          stack: 's',
+        },
+        {
+          label: 'SELL_CALL', data: DATA.signal_cascade.map(c => -c.sell),
+          backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--red'),
+          stack: 's',
+        },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { display: false, stacked: true },
+        y: { stacked: true, grid: { color: gridColor() }, ticks: { callback: v => Math.abs(v) } },
+      },
+    },
+  });
+}
+
+</script>
+</body>
+</html>
