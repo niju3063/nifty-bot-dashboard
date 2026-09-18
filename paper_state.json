@@ -19,5 +19,7 @@
   ],
   "trade_log": [],
   "last_entry_date": "2026-09-17",
-  "run_id": "PAPER"
+  "run_id": "PAPER",
+  "last_known_spot": 23270.6,
+  "last_known_spot_date": "2026-09-17"
 }
